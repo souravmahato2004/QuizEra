@@ -91,5 +91,5 @@
     </div>
 
 </body>
-<script src="../assets/js/quiz.js"></script>
+<script src="../assets/js/accountsetting.js"></script>
 </html>
