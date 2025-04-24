@@ -1,3 +1,4 @@
+<?php include '../backend/signUpBackend.php' ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
