@@ -34,7 +34,7 @@
 
         <div class="flex flex-col pl-4 pr-8 pb-16 ml-8 mt-12">
             <h2 class="text-4xl font-medium mb-4 text-[#9D3AE3] mb-4">Your Current Plan</h2>
-            <div class="bg-[#F3F3F3] h-auto w-2/3 pl-4 pt-2 rounded-xl border-2 border-[#DBDBDB]">
+            <div class="bg-[#F3F3F3] h-auto w-2/3 pl-4 pt-2 rounded-xl border-2 border-[#DBDBDB] hover:border-[#797979] transition-all duration-200">
                 <span class="text-[#9D3AE3] text-xl">Free Plan</span>
                 <span class="text-xl">: Perfect for casual users and quiz enthusiasts just getting started.</span>
                 <ul class="list-disc pl-8 my-4">
@@ -50,7 +50,7 @@
             <h2 class="text-4xl font-medium mt-8 mb-4 text-[#9D3AE3] mb-4">Upgrade your Plan</h2>
             <div class="flex flex-row space-x-8">
             <!-- Card 1 -->
-            <div class="flex flex-col justify-between bg-[#F3F3F3] h-[350px] w-3/5 pl-4 pt-2 rounded-xl border-2 border-[#DBDBDB]">
+            <div class="flex flex-col justify-between bg-[#F3F3F3] h-[350px] w-3/5 pl-4 pt-2 rounded-xl border-2 border-[#DBDBDB] hover:border-[#797979] transition-all duration-200">
                 <div>
                     <span class="text-[#9D3AE3] text-xl">Professional Plan</span>
                     <span class="text-xl">: Ideal for educators, trainers, and power users who need more control and customization.</span>
@@ -74,7 +74,7 @@
             </div>
 
             <!-- Card 2 -->
-            <div class="flex flex-col justify-between bg-[#F3F3F3] h-[350px] w-3/5 pl-4 pt-2 rounded-xl border-2 border-[#DBDBDB]">
+            <div class="flex flex-col justify-between bg-[#F3F3F3] h-[350px] w-3/5 pl-4 pt-2 rounded-xl border-2 border-[#DBDBDB] hover:border-[#797979] transition-all duration-200">
                 <div>
                     <span class="text-[#9D3AE3] text-xl">Community Plan</span>
                     <span class="text-xl">: Built for institutions, clubs, and groups who want to grow, collaborate, and host engaging quiz events.</span>
