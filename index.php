@@ -16,7 +16,7 @@
     }
   </style>
 </head>
-<script src="assets/js/dropdown.js" defer></script>
+<script src="assets/js/index.js" defer></script>
 <body class="bg-white font-outfit text-gray-800">
 
   <!-- Navigation Bar -->
