@@ -1,3 +1,58 @@
+// email drop down
+const emailBtn = document.getElementById("emailDropdownBtn");
+const emailDropdown = document.getElementById("emailDropdown");
+
+emailBtn.addEventListener("click", () => {
+  emailDropdown.classList.toggle("hidden");
+});
+
+window.addEventListener("click", (e) => {
+  if (
+    !emailDropdown.contains(e.target) &&
+    !emailBtn.contains(e.target)
+  ) {
+    emailDropdown.classList.add("hidden");
+  }
+});
+
+// passowrd dropdown
+
+const passwordBtn = document.getElementById("passwordDropdownBtn");
+const passwordDropdown = document.getElementById("passwordDropdown");
+
+passwordBtn.addEventListener("click", () => {
+  passwordDropdown.classList.toggle("hidden");
+});
+
+window.addEventListener("click", (e) => {
+  if (
+    !passwordDropdown.contains(e.target) &&
+    !passwordBtn.contains(e.target)
+  ) {
+    passwordDropdown.classList.add("hidden");
+  }
+});
+
+// phone number dropdown
+
+const phoneBtn = document.getElementById("phoneDropdownBtn");
+const phoneDropdown = document.getElementById("phoneDropdown");
+
+phoneBtn.addEventListener("click", () => {
+  phoneDropdown.classList.toggle("hidden");
+});
+
+window.addEventListener("click", (e) => {
+  if (
+    !phoneDropdown.contains(e.target) &&
+    !phoneBtn.contains(e.target)
+  ) {
+    phoneDropdown.classList.add("hidden");
+  }
+});
+
+// username dropdown
+
 const userDropdownBtn = document.getElementById("userDropdownBtn");
 const userDropdown = document.getElementById("userDropdown");
 const openModalBtn = document.getElementById("openModalBtn");
