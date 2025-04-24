@@ -91,9 +91,5 @@
     </div>
 
 </body>
-<script src="../assets/js/userDropdown.js"></script>
-<script src="../assets/js/emailDropdown.js"></script>
-<script src="../assets/js/passwordDropdown.js"></script>
-<script src="../assets/js/phoneDropdown.js"></script>
-
+<script src="../assets/js/quiz.js"></script>
 </html>
