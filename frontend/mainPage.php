@@ -18,7 +18,7 @@
 <body class="bg-gray-100 h-screen w-screen overflow-hidden flex font-outfit">
     <div class="w-[363px] bg-white shadow-md h-full fixed flex flex-col px-4 border-r border-[#BE92DC]">
         <div class="flex flex-row items-center h-1/6 w-full">
-            <a href="mainPage.php" class="w-2/3 h-1/2"><img src="../assets/logo/QuizEra.png" alt="Logo"></a>
+            <a href="mainPage.php" class="w-2/3 h-1/2"><img src="../assets/logo/QuizEra.png" alt="Logo" class="w-full h-full"></a>
             <div class="w-fit h-7 ml-10 bg-purple-200 rounded-2xl border-2 border-purple-300 text-purple-600 px-1">FreePlan</div>
         </div>
 
