@@ -32,11 +32,11 @@
             </div>
             <hr class="my-3 border-1 border-gray-300">
             <ul class="space-y-2 text-black">
-                <li class="hover:underline cursor-pointer">Profile</li>
-                <li class="hover:underline cursor-pointer">Account Settings</li>
-                <li class="hover:underline cursor-pointer">Pricing & Billing</li>
-                <li class="hover:underline cursor-pointer">Language</li>
-                <li class="text-red-500 hover:underline cursor-pointer">Logout</li>
+                <li class="hover:underline cursor-pointer"><a href="profilePage.php">Profile</a></li>
+                <li class="hover:underline cursor-pointer"><a href="accountSettings.php">Account Settings</a></li>
+                <li class="hover:underline cursor-pointer"><a href="subscriptionPage.php">Pricing & Billing</a></li>
+                <li class="hover:underline cursor-pointer"><button>Language</button></li>
+                <li class="text-red-500 hover:underline cursor-pointer"><a href="">Logout</a></li>
             </ul>
         </div>
     </div>
