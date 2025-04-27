@@ -1,4 +1,3 @@
-<?php include '../backend/signUpBackend.php' ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -20,14 +19,13 @@
 <?php include '../backend/signUpBackend.php'?>
 
 <body class="bg-[#E1B6FF] flex items-center justify-center min-h-screen font-outfit">
-    <!-- Modal for OTP -->
-    <div id="otpModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <!-- Modal for OTP (FUTURE PURPOSE)-->
+    <!-- <div id="otpModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
             <h2 class="text-2xl font-semibold mb-4">Enter OTP</h2>
             <p class="text-gray-600 mb-4">We've sent an OTP to your Email</p>
 
-            <!-- OTP Verification Form -->
-            <form method="POST">
+            <form method="POST" action="verifyOtp.php">
                 <input type="hidden" name="email"
                     value="<?php echo htmlspecialchars($_SESSION['pending_email'] ?? '') ?>" />
 
@@ -43,7 +41,7 @@
                 </div>
             </form>
         </div>
-    </div>
+    </div> -->
 
     <!-- Error Modal -->
     <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
@@ -100,7 +98,6 @@
                     <form method="POST" id="signUpForm" class="w-4/5 px-10 py-16" onsubmit="event.preventDefault(); validateSignUp();">
                         <h2 class="text-6xl font-medium mb-2">Sign Up</h2>
                         <p class="text-[#727272] text-xl mb-6">Create your QuizEra account for free...</p>
-
                         <div class="relative mb-4">
                             <i
                                 class="ri-user-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
@@ -136,7 +133,7 @@
                         <div class="relative mb-2">
                             <i
                                 class="ri-key-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="password" id="reEnterPassword" name="Password" placeholder="Re-Type Password"
+                            <input type="password" id="reEnterPassword" name="password" placeholder="Re-Type Password"
                                 required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                             <button type="button" id="toggleReEnterPassword"
@@ -146,7 +143,7 @@
                         </div>
 
                         <div class="flex justify-start items-center gap-[10px] mt-4">
-                            <button name="signupBtn" type="submit" class="bg-[#A435F0] text-white px-6 py-2 rounded-full">SignUp</button>
+                            <button type="submit" class="bg-[#A435F0] text-white px-6 py-2 rounded-full hover:bg-purple-800">SignUp</button>
                             <span class="text-[#727272] text-lg ml-4">Or</span>
                             <div class="w-fit mr-2">
                                 <button type="button"

@@ -80,9 +80,10 @@ reEnterPasswordInput.addEventListener("input", validateReEnterPassword);
 passwordInput.addEventListener("input", validateReEnterPassword);
 
 function validateSignUp() {
-  const password = passwordInput.value;
-  const rePassword = reEnterPasswordInput.value;
-
+  const form = document.getElementById("signUpForm");
+  const password = document.getElementById("password").value;
+  const rePassword = document.getElementById("reEnterPassword").value;
+  
   const isLengthValid = password.length >= 8;
   const hasNumberAndSpecial = /\d/.test(password) && /[!@#$%^&*(),.?":{}|<>]/.test(password);
   const hasLowerAndUpper = /[a-z]/.test(password) && /[A-Z]/.test(password);
@@ -96,11 +97,19 @@ function validateSignUp() {
   if (!isPasswordMatch) errorMessages.push("Passwords do not match.");
 
   if (errorMessages.length > 0) {
-    showErrorModal(errorMessages.join("\n"));
+    // Show the modal with error messages
+    const errorTextElement = document.getElementById("errorText");
+    errorTextElement.textContent = errorMessages.join("\n");
+    document.getElementById("errorModal").classList.remove("hidden");
   } else {
-    showOtpModal();
+    form.submit(); // Submit the form after validation passes
   }
 }
+
+function closeErrorModal() {
+  document.getElementById("errorModal").classList.add("hidden");
+}
+
 
 
 function showOtpModal() {
