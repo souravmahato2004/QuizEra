@@ -18,6 +18,7 @@
     }
     </style>
 </head>
+<?php include 'backend/db.php'; ?>
 <script src="assets/js/index.js" defer></script>
 
 <body class="bg-white font-outfit text-gray-800">

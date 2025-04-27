@@ -16,21 +16,31 @@
     }
     </style>
 </head>
+<?php include '../backend/signUpBackend.php'?>
 
 <body class="bg-[#E1B6FF] flex items-center justify-center min-h-screen font-outfit">
-
     <!-- Modal for OTP -->
     <div id="otpModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
             <h2 class="text-2xl font-semibold mb-4">Enter OTP</h2>
             <p class="text-gray-600 mb-4">We've sent an OTP to your Email</p>
-            <input type="text" maxlength="6" inputmode="numeric"
-                oninput="this.value = this.value.replace(/[^0-9]/g, '')" placeholder="Enter your 6-Digit OTP"
-                class="w-full border border-gray-300 p-2 rounded-md mb-4 outline-none focus:ring-2 focus:ring-[#A435F0]" />
-            <div class="flex justify-end gap-3">
-                <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md">Cancel</button>
-                <button onclick="submitOtp()" class="px-4 py-2 bg-[#A435F0] text-white rounded-md">Submit</button>
-            </div>
+
+            <!-- OTP Verification Form -->
+            <form method="POST">
+                <input type="hidden" name="email"
+                    value="<?php echo htmlspecialchars($_SESSION['pending_email'] ?? '') ?>" />
+
+                <input type="text" name="otp" maxlength="6" inputmode="numeric"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')" placeholder="Enter your 6-Digit OTP"
+                    class="w-full border border-gray-300 p-2 rounded-md mb-4 outline-none focus:ring-2 focus:ring-[#A435F0]"
+                    required />
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()"
+                        class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-[#A435F0] text-white rounded-md">Submit</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -83,26 +93,31 @@
 
                 <!-- Sign Up Section -->
                 <div class="w-1/2 flex">
-                    <div class="w-4/5 px-10 py-16">
+                    <!-- Replace only the inner container of each panel with these -->
+
+                    <!-- Sign Up Section -->
+                    <form method="POST" id="signUpForm" class="w-4/5 px-10 py-16" onsubmit="event.preventDefault(); validateSignUp();">
                         <h2 class="text-6xl font-medium mb-2">Sign Up</h2>
                         <p class="text-[#727272] text-xl mb-6">Create your QuizEra account for free...</p>
 
                         <div class="relative mb-4">
                             <i
                                 class="ri-user-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="text" placeholder="Enter your Name"
+                            <input type="text" name="name" placeholder="Enter your UserName" required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                         </div>
+
                         <div class="relative mb-4">
                             <i
                                 class="ri-mail-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="email" placeholder="Enter your Email"
+                            <input type="email" name="email" placeholder="Enter your Email" required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                         </div>
+
                         <div class="relative mb-2">
                             <i
                                 class="ri-key-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="password" id="password" placeholder="Enter your Password"
+                            <input type="password" id="password" placeholder="Enter your Password" required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                             <button type="button" id="togglePassword"
                                 class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#727272]">
@@ -120,7 +135,8 @@
                         <div class="relative mb-2">
                             <i
                                 class="ri-key-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="password" id="reEnterPassword" placeholder="Re-Type Password"
+                            <input type="password" id="reEnterPassword" name="Password" placeholder="Re-Type Password"
+                                required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                             <button type="button" id="toggleReEnterPassword"
                                 class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#727272]">
@@ -128,61 +144,73 @@
                             </button>
                         </div>
 
-                        <div class="flex justify-start items-center gap-[10px]">
-                            <button onclick="validateSignUp()"
-                                class="bg-[#A435F0] text-white px-6 py-2 rounded-full">Sign Up</button>
+                        <div class="flex justify-start items-center gap-[10px] mt-4">
+                            <button name="signupBtn" type="submit" class="bg-[#A435F0] text-white px-6 py-2 rounded-full">SignUp</button>
                             <span class="text-[#727272] text-lg ml-4">Or</span>
                             <div class="w-fit mr-2">
-                                <button class="flex items-center bg-gray-200 rounded-full px-2 py-2 w-full">
+                                <button type="button"
+                                    class="flex items-center bg-gray-200 rounded-full px-2 py-2 w-full">
                                     <img src="../assets/logo/google.png" alt="Google Logo" class="w-6 h-6" />
                                 </button>
                             </div>
                             <div class="w-fit">
-                                <button class="flex items-center bg-gray-200 rounded-md px-2 py-2 w-full">
+                                <button type="button" class="flex items-center bg-gray-200 rounded-md px-2 py-2 w-full">
                                     <img src="../assets/logo/microsoft.png" alt="Microsoft Logo" class="w-6 h-6" />
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </form>
+
                 </div>
 
                 <!-- Sign In Section (unchanged) -->
                 <div class="w-1/2 flex">
-                    <div class="w-4/5 px-10 py-16">
+                    <!-- Sign In Section -->
+                    <form id="signInForm" class="w-4/5 px-10 py-16"
+                        onsubmit="event.preventDefault(); validateSignIn();">
                         <h2 class="text-6xl font-medium mb-2">Sign In</h2>
                         <p class="text-[#727272] text-xl mb-6">Login to your QuizEra account...</p>
+
                         <div class="relative mb-4">
                             <i
                                 class="ri-mail-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="email" placeholder="Enter your Email"
+                            <input type="email" name="email" placeholder="Enter your Email" required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                         </div>
+
                         <div class="relative mb-2">
                             <i
                                 class="ri-key-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="password" id="loginPassword" placeholder="Enter your Password"
+                            <input type="password" id="loginPassword" name="password" placeholder="Enter your Password"
+                                required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                             <button type="button" id="toggleLoginPassword"
                                 class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#727272]">
                                 <i class="ri-eye-line text-lg"></i>
                             </button>
                         </div>
+
                         <a href="#" class="text-sm text-black">Forgot your Password?</a>
                         <div class="mt-4">
-                            <button class="bg-[#A435F0] text-white px-6 py-2 rounded-full">Sign In</button>
+                            <button type="submit" class="bg-[#A435F0] text-white px-6 py-2 rounded-full">Sign
+                                In</button>
                             <span class="text-[#727272] text-lg ml-4">Or</span>
                         </div>
+
                         <div class="space-y-4 w-fit max-w-xs mt-4">
-                            <button class="flex items-center gap-3 bg-gray-200 rounded-full px-4 py-2 w-full">
+                            <button type="button"
+                                class="flex items-center gap-3 bg-gray-200 rounded-full px-4 py-2 w-full">
                                 <img src="../assets/logo/google.png" alt="Google Logo" class="w-6 h-6" />
                                 <span class="text-[#727272] font-medium">Login with Google</span>
                             </button>
-                            <button class="flex items-center gap-3 bg-gray-200 rounded-md px-4 py-2 w-full">
+                            <button type="button"
+                                class="flex items-center gap-3 bg-gray-200 rounded-md px-4 py-2 w-full">
                                 <img src="../assets/logo/microsoft.png" alt="Microsoft Logo" class="w-6 h-6" />
                                 <span class="text-[#727272] font-medium">Login with Microsoft</span>
                             </button>
                         </div>
-                    </div>
+                    </form>
+
                 </div>
 
             </div>
