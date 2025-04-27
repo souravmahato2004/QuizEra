@@ -1,6 +1,6 @@
 <div class="w-[363px] bg-white shadow-md h-full fixed flex flex-col px-4 border-r border-[#BE92DC]">
         <div class="flex flex-row items-center h-1/6 w-full">
-            <img src="../assets/logo/QuizEra.png" alt="Logo" class="w-2/3 h-1/2">
+            <a href="mainPage.php" class="w-2/3 h-1/2"><img src="../assets/logo/QuizEra.png" alt="Logo" class="h-full w-full"></a>
             <div class="w-fit h-7 ml-10 bg-purple-200 rounded-2xl border-2 border-purple-300 text-purple-600 px-1">FreePlan</div>
         </div>
 
@@ -8,7 +8,7 @@
 
         <div class="mt-8 pl-5">
             <i class="ri-wallet-3-fill text-lg text-[#797979]"></i>
-            <a href="#" class="text-[#797979] text-xl text-sm font-medium hover:underline mb-4"> Upgrade Your Existing Plan</a>
+            <a href="subscriptionPage.php" class="text-[#797979] text-xl text-sm font-medium hover:underline mb-4"> Upgrade Your Existing Plan</a>
         </div>
 
         <ul class="space-y-3 text-gray-700 text-sm mt-16 pl-5">
