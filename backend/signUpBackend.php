@@ -72,8 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
             if ($result->num_rows > 0) {
                 $row=$result->fetch_assoc();
                 if(password_verify($loginpassword,$row['user_password'])){
-                    session_start();
-                    $_SESSION['email']=$email;
+                    if(session_status()==PHP_SESSION_NONE){
+                        session_start();
+                    }                    $_SESSION['email']=$email;
                     $_SESSION['id']=$row['user_id'];
                     echo "<script>window.location.href='../frontend/mainPage.php';</script>";
                     exit;
