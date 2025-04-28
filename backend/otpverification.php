@@ -46,6 +46,8 @@ if (isset($_POST['submitOtp'])) {
                     unset($_SESSION['pendingname']);
                     unset($_SESSION['pendingemail']);
                     unset($_SESSION['pendingpassword']);
+                    session_unset();
+                    session_destroy();
     
                     // Redirect to the signup page after successful insertion
                     header("Location: ../frontend/signup.php?status=success");

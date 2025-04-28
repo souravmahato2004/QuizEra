@@ -95,9 +95,10 @@
                     <!-- Replace only the inner container of each panel with these -->
 
                     <!-- Sign Up Section -->
-                    <form method="POST" id="signUpForm" class="w-4/5 px-10 py-16" onsubmit="event.preventDefault(); validateSignUp();">
+                    <form method="POST" action="../frontend/signup.php" id="signUpForm" class="w-4/5 px-10 py-16" onsubmit="event.preventDefault(); validateSignUp();">
                         <h2 class="text-6xl font-medium mb-2">Sign Up</h2>
                         <p class="text-[#727272] text-xl mb-6">Create your QuizEra account for free...</p>
+                        <input type="hidden" name="form_name" value="signupForm">
                         <div class="relative mb-4">
                             <i
                                 class="ri-user-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
@@ -164,11 +165,10 @@
                 <!-- Sign In Section (unchanged) -->
                 <div class="w-1/2 flex">
                     <!-- Sign In Section -->
-                    <form id="signInForm" class="w-4/5 px-10 py-16"
-                        onsubmit="event.preventDefault(); validateSignIn();">
+                    <form method="POST" action="../frontend/signup.php" id="signInForm" class="w-4/5 px-10 py-16">
                         <h2 class="text-6xl font-medium mb-2">Sign In</h2>
                         <p class="text-[#727272] text-xl mb-6">Login to your QuizEra account...</p>
-
+                        <input type="hidden" name="form_name" value="signinForm">
                         <div class="relative mb-4">
                             <i
                                 class="ri-mail-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
@@ -179,7 +179,7 @@
                         <div class="relative mb-2">
                             <i
                                 class="ri-key-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#727272] text-lg"></i>
-                            <input type="password" id="loginPassword" name="password" placeholder="Enter your Password"
+                            <input type="password" id="loginPassword" name="loginpassword" placeholder="Enter your Password"
                                 required
                                 class="w-full border-b-2 border-black p-2 pl-10 outline-none placeholder:text-[#727272] text-lg" />
                             <button type="button" id="toggleLoginPassword"
@@ -190,8 +190,7 @@
 
                         <a href="#" class="text-sm text-black">Forgot your Password?</a>
                         <div class="mt-4">
-                            <button type="submit" class="bg-[#A435F0] text-white px-6 py-2 rounded-full">Sign
-                                In</button>
+                            <button type="submit" class="bg-[#A435F0] text-white px-6 py-2 rounded-full hover:bg-purple-800">SignIn</button>
                             <span class="text-[#727272] text-lg ml-4">Or</span>
                         </div>
 

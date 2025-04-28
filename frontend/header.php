@@ -36,7 +36,7 @@
                 <li class="hover:underline cursor-pointer"><a href="accountSettings.php">Account Settings</a></li>
                 <li class="hover:underline cursor-pointer"><a href="subscriptionPage.php">Pricing & Billing</a></li>
                 <li class="hover:underline cursor-pointer"><button>Language</button></li>
-                <li class="text-red-500 hover:underline cursor-pointer"><a href="">Logout</a></li>
+                <li class="text-red-500 hover:underline cursor-pointer"><a href="../backend/logoutBackend.php">Logout</a></li>
             </ul>
         </div>
     </div>
