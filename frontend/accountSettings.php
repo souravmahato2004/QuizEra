@@ -27,10 +27,12 @@
 
             <div class="relative mx-32 mt-10">
                 <button id="userDropdownBtn" class="text-lg font-medium">Name & Image</button>
-                <p class="text-sm text-[#797979]">You logged in as QuizEra Username</p>
+                <p class="text-sm text-[#797979]">You logged in as <?php echo $_SESSION['username'] ?></p>
                 <div id="userDropdown" class="hidden mt-2 w-[648px] bg-white border rounded-lg shadow-lg p-4 z-10">
                     <label class="block text-md font-medium mb-2">Name</label>
                     <input type="text" placeholder="QuizEra Username" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
+                    <button class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mb-4">Save username</button>
+                    <input type="text" placeholder="QuizEra name" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
                     <button class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mb-4">Save Name</button>
                     <label class="block text-md font-medium mb-2">Profile Image</label>
                     <button id="openModalBtn" class="hover:curson-pointer"><img src="../assets/images/draganddrop.png" alt="dragndrop" class="h-8 w-auto rounded-md"></button>
@@ -39,7 +41,7 @@
 
             <div class="relative mx-32 mt-10">
                 <button id="emailDropdownBtn" class="text-lg font-medium">Email</button>
-                <p class="text-sm text-[#797979]">your email is quizerauser123@gmail.com</p>
+                <p class="text-sm text-[#797979]">your email is <?php echo $_SESSION['email'] ?></p>
                 <div id="emailDropdown" class="hidden mt-2 w-[648px] bg-white border rounded-lg shadow-lg p-4 z-10">
                     <label class="block text-md font-medium mb-2">Email</label>
                     <input type="text" placeholder="quizerauser123@gmail.com" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
@@ -59,7 +61,7 @@
             </div>
             <div class="relative mx-32 mt-10">
                 <button id="phoneDropdownBtn" class="text-lg font-medium">Phone no.</button>
-                <p class="text-sm text-[#797979]">your registered phone number is 99330-1xxx3</p>
+                <p class="text-sm text-[#797979]">your registered phone number is <?php echo $_SESSION['phoneno'] ?></p>
                 <div id="phoneDropdown" class="hidden mt-2 w-[648px] bg-white border rounded-lg shadow-lg p-4 z-10">
                     <label class="block text-md font-medium mb-2">Enter Phone no.</label>
                     <input type="text" placeholder="+91-923xx-xxxx0" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">

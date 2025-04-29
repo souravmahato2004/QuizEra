@@ -1,3 +1,10 @@
+<?php
+    session_start();
+    if(!isset($_SESSION['email'])){
+        header("Location: ../frontend/signup.php");
+        exit();
+    }
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -78,7 +85,7 @@
 
 
         <div class="flex flex-col justify-center items-center bg-[#E0B3FF] px-6 mb-4 py-14">
-            <h1 class="text-5xl font-medium text-white pb-4">Welcome, QuizEra UserName</h1>
+            <h1 class="text-5xl font-medium text-white pb-4">Welcome, <?php echo $_SESSION['username']; ?></h1>
             <div class="relative mt-4 w-2/5">
                 <input
                     type="text"

@@ -1,3 +1,9 @@
+<?php 
+    if(session_status()==PHP_SESSION_NONE){
+        session_start();
+    }
+?>
+
 <div class="flex text-white items-center justify-end py-2 w-full bg-white">
     <div class="flex justify-center items-center h-8 w-8 text-[#797979] border border-black-2 mr-2 rounded-lg">
         <i class="ri-notification-2-line"></i>
@@ -26,8 +32,8 @@
             <div class="flex items-center space-x-3">
                 <img src="../assets/profilepic/demo.jpg" alt="User" class="w-10 h-10 rounded-full">
                 <div>
-                    <h4 class="font-semibold text-gray-800">QuizEra User</h4>
-                    <p class="text-sm text-gray-500">quizerauser123@gmail.com</p>
+                    <h4 class="font-semibold text-gray-800"><?php echo $_SESSION['username'] ?></h4>
+                    <p class="text-sm text-gray-500"><?php echo $_SESSION['email']?></p>
                 </div>
             </div>
             <hr class="my-3 border-1 border-gray-300">
