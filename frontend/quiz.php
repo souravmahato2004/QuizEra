@@ -119,10 +119,11 @@
             </div>
         </div>
     </div>
-
+    <!-- slidebar -->
     <div class="flex flex-row bg-[#E5E5E5] h-full mt-8">
         <div class="flex flex-col w-[200px] bg-[#E5E5E5] mr-4 items-end">
             <!-- New Slide Button -->
+             
             <button
                 class="bg-[#A435F0] text-white h-10 w-[170px] flex justify-center items-center rounded-full hover:bg-purple-700 mb-6">
                 + New Slide
@@ -216,7 +217,6 @@
             <select class="w-full bg-gray-100 p-2 rounded-md mb-4 text-sm text-gray-800 focus:outline-none">
                 <option>Multiple Choice</option>
                 <option>Fill in the blank</option>
-                <option>Survey Quiz</option>
             </select>
 
             <label class="text-xs font-medium text-gray-700 block mb-1">Image</label>

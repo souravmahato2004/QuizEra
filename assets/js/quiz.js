@@ -86,3 +86,4 @@ document.addEventListener("DOMContentLoaded", () => {
         openModal.classList.add("hidden");
     });
 });
+
