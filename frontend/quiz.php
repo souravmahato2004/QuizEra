@@ -18,14 +18,16 @@
     </style>
 </head>
 
+<script src="../assets/js/quiz.js"></script>
+
 <body class="bg-[#E5E5E5] min-h-screen flex flex-col font-outfit">
     <div class="relative">
         <input type="checkbox" id="close-banner" class="hidden peer" />
         <div class="bg-[#E1B6FF] py-2 flex flex-row items-center pl-4 relative peer-checked:hidden h-12">
             <p class="text-lg font-small">Unlock unlimited participants and new features.</p>
             <button
-                class="flex flex-row h-fit bg-[#EFDAFE] text-[#A435F0] border-2 border-[#A435F0] rounded-xl px-2 ml-2 hover:bg-white transition duration-400"><svg
-                    xmlns="http://www.w3.org/2000/svg" class="h-[24px] w-[24px] text-[#A435F0] py-[2px]"
+                class="flex flex-row h-fit bg-[#EFDAFE] text-[#A435F0] border-2 border-[#A435F0] rounded-xl px-2 ml-2 hover:bg-white transition duration-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-[24px] w-[24px] text-[#A435F0] py-[2px]"
                     viewBox="0 0 24 24" fill="currentColor">
                     <path
                         d="M12.0049 22.0027C6.48204 22.0027 2.00488 17.5256 2.00488 12.0027C2.00488 6.4799 6.48204 2.00275 12.0049 2.00275C17.5277 2.00275 22.0049 6.4799 22.0049 12.0027C22.0049 17.5256 17.5277 22.0027 12.0049 22.0027ZM12.0049 20.0027C16.4232 20.0027 20.0049 16.421 20.0049 12.0027C20.0049 7.58447 16.4232 4.00275 12.0049 4.00275C7.5866 4.00275 4.00488 7.58447 4.00488 12.0027C4.00488 16.421 7.5866 20.0027 12.0049 20.0027ZM8.50488 14.0027H14.0049C14.281 14.0027 14.5049 13.7789 14.5049 13.5027C14.5049 13.2266 14.281 13.0027 14.0049 13.0027H10.0049C8.62417 13.0027 7.50488 11.8835 7.50488 10.5027C7.50488 9.12203 8.62417 8.00275 10.0049 8.00275H11.0049V6.00275H13.0049V8.00275H15.5049V10.0027H10.0049C9.72874 10.0027 9.50488 10.2266 9.50488 10.5027C9.50488 10.7789 9.72874 11.0027 10.0049 11.0027H14.0049C15.3856 11.0027 16.5049 12.122 16.5049 13.5027C16.5049 14.8835 15.3856 16.0027 14.0049 16.0027H13.0049V18.0027H11.0049V16.0027H8.50488V14.0027Z">
@@ -45,7 +47,10 @@
 
     <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
         <div class="flex items-center gap-2">
-            <a href="#" class="text-xl">&#8592;</a>
+            <!-- Back Button -->
+            <button onclick="history.back()" class=" top-10 left-10 text-black z-20">
+                <i class="ri-arrow-left-long-line"></i>
+            </button>
             <span class="text-lg font-small">NameOfQuiz</span>
         </div>
 
@@ -55,13 +60,63 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <div class="relative">
-                <img src="../assets/profilepic/demo.jpg" alt="Profile" class="w-8 h-8 rounded-full object-cover">
-                <button
-                    class="absolute -top-1 -right-1 w-5 h-5 bg-gray-200 text-black rounded-full text-xs flex items-center justify-center">+</button>
+            <!-- Profile Image and Share Button -->
+            <div class="relative inline-flex items-center gap-2" id="shareContainer">
+                <!-- Profile Image (opens user list modal) -->
+                <div class="relative">
+                    <img id="profileImage" src="../assets/profilepic/demo.jpg" alt="Profile"
+                        class="w-10 h-10 rounded-full object-cover cursor-pointer">
+                </div>
+
+                <!-- Share Button (opens share modal) -->
+                <button id="openShareModal"
+                    class="bg-gray-200 px-4 py-1 rounded-full text-lg hover:bg-[#CFCFCF]">Share</button>
+                <button class="bg-[#A435F0] text-white px-4 py-1 rounded-full text-lg hover:bg-purple-700">Present</button>
+                <!-- Share Modal (invite user) -->
+                <div id="shareModal"
+                    class="absolute top-14 right-0 mt-2 w-80 bg-white shadow-lg border border-gray-200 rounded-xl p-4 z-50 hidden">
+                    <h2 class="text-lg font-semibold mb-3">Share Quiz</h2>
+
+                    <label class="block text-sm font-medium mb-1">User Email</label>
+                    <input type="email" id="shareEmail" placeholder="example@mail.com"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                    <label class="block text-sm font-medium mb-1">Permission</label>
+                    <select id="permissionSelect"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="edit">Can Edit</option>
+                        <option value="view">Can View</option>
+                    </select>
+
+                    <div class="flex justify-end space-x-2">
+                        <button id="cancelShare"
+                            class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">Cancel</button>
+                        <button id="confirmShare"
+                            class="px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">Share</button>
+                    </div>
+                </div>
+
+                <!-- Collaborators Modal -->
+                <div id="collaboratorsModal"
+                    class="absolute top-14 right-14 mt-2 w-72 bg-white shadow-lg border border-gray-200 rounded-xl p-4 z-50 hidden max-h-[300px] overflow-auto">
+                    <h2 class="text-lg font-semibold mb-3">Collaborators</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center justify-between">
+                            <span>Alice (Owner)</span><span class="text-gray-500 text-xs">Full access</span>
+                        </li>
+                        <li class="flex items-center justify-between">
+                            <span>bob@example.com</span><span class="text-gray-500 text-xs">Can Edit</span>
+                        </li>
+                        <li class="flex items-center justify-between">
+                            <span>charlie@example.com</span><span class="text-gray-500 text-xs">Can View</span>
+                        </li>
+                    </ul>
+                    <div class="flex justify-end mt-4">
+                        <button id="closeCollaborators"
+                            class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">Close</button>
+                    </div>
+                </div>
             </div>
-            <button class="bg-gray-200 px-4 py-1 rounded-full text-lg hover:bg-[#CFCFCF]">Share</button>
-            <button class="bg-[#A435F0] text-white px-4 py-1 rounded-full text-lg hover:bg-purple-700">Present</button>
         </div>
     </div>
 
@@ -134,7 +189,8 @@
             </div>
         </div>
 
-        <div class="bg-white border-2 flex flex-col border-transparent hover:border-purple-300 ml-2 rounded-lg py-10 pl-12 pr-10 w-full max-w-4xl h-[500px] shadow-lg transition-all duration-200">
+        <div
+            class="bg-white border-2 flex flex-col border-transparent hover:border-purple-300 ml-2 rounded-lg py-10 pl-12 pr-10 w-full max-w-4xl h-[500px] shadow-lg transition-all duration-200">
             <h1 class="text-3xl font-small text-black mb-8">Type your question here...</h1>
 
             <h2 class="text-xl font-small text-black mt-12 mb-2">Options</h2>
@@ -165,9 +221,8 @@
 
             <label class="text-xs font-medium text-gray-700 block mb-1">Image</label>
             <p class="text-xs text-gray-400 mb-2">We support .jpg, .png, .jpeg and .png</p>
-            <div
-                class="border border-dashed border-gray-300 rounded-md flex items-center justify-center h-20 mb-5 cursor-pointer bg-gray-50 text-gray-500 text-sm">
-                <span>Drag and Drop or <span class="underline">Click here to add image</span></span>
+            <div>
+            <button id="openModalBtn" class="hover:curson-pointer"><img src="../assets/images/draganddrop.png" alt="dragndrop" class="h-8 w-auto rounded-md"></button>
             </div>
 
             <hr class="border-t border-purple-300 mb-4">
@@ -238,6 +293,18 @@
         </div>
 
 
+    </div>
+    <!-- modal for uploading image. -->
+    <div id="openModal" class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-2xl p-6 w-[600px] h-auto">
+            <h2 class="text-xl font-semibold mb-4 text-center text-purple-700">Upload Image</h2>
+            <div id="drop-area" class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer transition hover:border-purple-500 hover:bg-purple-50">
+                <input type="file" id="fileElem" accept="image/*" class="hidden">
+                <p class="text-gray-500 mb-2">Drag & drop an image here<br>or click to upload</p>
+                <div id="preview" class="mt-4"></div>
+            </div>
+            <button id="closeModalBtn" class="mt-10 ml-52 bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 w-1/4">Close</button>
+        </div>
     </div>
 </body>
 <script>

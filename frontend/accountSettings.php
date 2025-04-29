@@ -96,7 +96,7 @@ if (session_status() == PHP_SESSION_NONE) {
         </div>
     </div>
     <div id="openModal" class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center z-50">
-        <div class="bg-white rounded-2xl p-6 w-[600px] h-[300px]">
+        <div class="bg-white rounded-2xl p-6 w-[600px] h-auto">
             <h2 class="text-xl font-semibold mb-4 text-center text-purple-700">Upload Image</h2>
             <div id="drop-area" class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer transition hover:border-purple-500 hover:bg-purple-50">
                 <input type="file" id="fileElem" accept="image/*" class="hidden">
