@@ -1,3 +1,8 @@
+<?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,18 +14,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Handlee&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="../assets/icons/favicon.ico">
     <style>
-    .font-outfit {
-      font-family: 'Outfit', sans-serif;
-    }
+        .font-outfit {
+            font-family: 'Outfit', sans-serif;
+        }
     </style>
 </head>
 
+<?php include '../backend/updateDetails.php' ?>
+
 <body class="bg-gray-100 h-screen w-screen overflow-hidden flex font-outfit">
-    
-    <?php include '../frontend/sidebar.php'?>
+
+    <?php include '../frontend/sidebar.php' ?>
 
     <div class="bg-white w-full ml-[363px] flex flex-col overflow-y-auto">
-        <?php include '../frontend/header.php'?>
+        <?php include '../frontend/header.php' ?>
 
         <div class="flex flex-col mx-12 pb-16 pb-4 border-b border-[#9D3AE3]">
             <h2 class="text-4xl font-medium text-[#9D3AE3]">Account Settings</h2>
@@ -29,13 +36,23 @@
                 <button id="userDropdownBtn" class="text-lg font-medium">Name & Image</button>
                 <p class="text-sm text-[#797979]">You logged in as <?php echo $_SESSION['username'] ?></p>
                 <div id="userDropdown" class="hidden mt-2 w-[648px] bg-white border rounded-lg shadow-lg p-4 z-10">
-                    <label class="block text-md font-medium mb-2">Name</label>
-                    <input type="text" placeholder="QuizEra Username" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
-                    <button class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mb-4">Save username</button>
-                    <input type="text" placeholder="QuizEra name" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
-                    <button class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mb-4">Save Name</button>
-                    <label class="block text-md font-medium mb-2">Profile Image</label>
-                    <button id="openModalBtn" class="hover:curson-pointer"><img src="../assets/images/draganddrop.png" alt="dragndrop" class="h-8 w-auto rounded-md"></button>
+                    <form method="POST" enctype="multipart/form-data" action="../backend/updateDetails.php">
+                        <input type="hidden" name="form_name" value="nameSection">
+                        <label class="block text-md font-medium mb-2">UserName</label>
+                        <input type="text" placeholder="QuizEra Username" name="username" value="<?php echo $_SESSION['username'] ?>" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
+                        <!-- <button type="submit" class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mb-4">Save username</button> -->
+                        <label class="block text-md font-medium mb-2">Name</label>
+                        <input type="text" placeholder="QuizEra name" name="Name" value="<?php echo $_SESSION['name'] ?>" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
+                        <!-- <button type="submit" class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mb-4">Save Name</button> -->
+                        <label class="block text-md font-medium mb-2">Profile Image</label>
+                        <input type="file" name="user_pic" id="fileInput" hidden>
+
+                        <!-- Trigger button to open file selector -->
+                        <button type="button" id="openModalBtn">
+                            <img src="../assets/images/draganddrop.png" alt="dragndrop" class="h-8 w-auto rounded-md">
+                        </button>
+                        <button type="submit" class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mt-4">Save Changes</button>
+                    </form>
                 </div>
             </div>
 
@@ -43,9 +60,7 @@
                 <button id="emailDropdownBtn" class="text-lg font-medium">Email</button>
                 <p class="text-sm text-[#797979]">your email is <?php echo $_SESSION['email'] ?></p>
                 <div id="emailDropdown" class="hidden mt-2 w-[648px] bg-white border rounded-lg shadow-lg p-4 z-10">
-                    <label class="block text-md font-medium mb-2">Email</label>
-                    <input type="text" placeholder="quizerauser123@gmail.com" class="w-3/4 border-2 border-gray-300 rounded-md px-2 py-1 mb-4">
-                    <button class="bg-[#797979] text-white rounded-2xl px-4 py-1 hover:bg-gray-800 transition duration-400 mb-4">Save Email</button>
+                    <label class="block text-md font-medium mb-2"><?php echo $_SESSION['email'] ?></label>
                 </div>
             </div>
             <div class="relative mx-32 mt-10">
@@ -94,4 +109,5 @@
 
 </body>
 <script src="../assets/js/accountsetting.js"></script>
+
 </html>
