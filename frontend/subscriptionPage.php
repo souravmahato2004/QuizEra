@@ -1,3 +1,8 @@
+<?php 
+    if(session_status()==PHP_SESSION_NONE){
+        session_start();
+    }
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -27,8 +32,8 @@
                 <img src="../assets/profilepic/demo.jpg" alt="demo" class="rounded-full">
             </div>
             <div class="flex flex-col">
-                <h1 class="text-7xl font-medium text-[#9D3AE3] pb-4">Welcome,<br>QuizEra UserName</h1>
-                <p class="text-2xl font-small pl-2">quizerauser123@gmail.com</p>
+                <h1 class="text-7xl font-medium text-[#9D3AE3] pb-4">Welcome,<br><?php echo $_SESSION['username'] ?></h1>
+                <p class="text-2xl font-small pl-2"><?php echo $_SESSION['email'] ?></p>
             </div>
         </div>
 
