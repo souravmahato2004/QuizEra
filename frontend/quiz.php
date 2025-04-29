@@ -117,10 +117,6 @@
                     </div>
                 </div>
             </div>
-
-
-
-            
         </div>
     </div>
 
@@ -225,9 +221,8 @@
 
             <label class="text-xs font-medium text-gray-700 block mb-1">Image</label>
             <p class="text-xs text-gray-400 mb-2">We support .jpg, .png, .jpeg and .png</p>
-            <div
-                class="border border-dashed border-gray-300 rounded-md flex items-center justify-center h-20 mb-5 cursor-pointer bg-gray-50 text-gray-500 text-sm">
-                <span>Drag and Drop or <span class="underline">Click here to add image</span></span>
+            <div>
+            <button id="openModalBtn" class="hover:curson-pointer"><img src="../assets/images/draganddrop.png" alt="dragndrop" class="h-8 w-auto rounded-md"></button>
             </div>
 
             <hr class="border-t border-purple-300 mb-4">
@@ -298,6 +293,18 @@
         </div>
 
 
+    </div>
+    <!-- modal for uploading image. -->
+    <div id="openModal" class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-2xl p-6 w-[600px] h-auto">
+            <h2 class="text-xl font-semibold mb-4 text-center text-purple-700">Upload Image</h2>
+            <div id="drop-area" class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer transition hover:border-purple-500 hover:bg-purple-50">
+                <input type="file" id="fileElem" accept="image/*" class="hidden">
+                <p class="text-gray-500 mb-2">Drag & drop an image here<br>or click to upload</p>
+                <div id="preview" class="mt-4"></div>
+            </div>
+            <button id="closeModalBtn" class="mt-10 ml-52 bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 w-1/4">Close</button>
+        </div>
     </div>
 </body>
 <script>

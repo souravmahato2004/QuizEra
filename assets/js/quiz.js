@@ -34,4 +34,55 @@ document.addEventListener("DOMContentLoaded", () => {
             collaboratorsModal.classList.add("hidden");
         }
     });
+
+    const openModalBtn = document.getElementById("openModalBtn");
+    const openModal = document.getElementById("openModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const dropArea = document.getElementById("drop-area");
+    const fileInput = document.getElementById("fileElem");
+    const preview = document.getElementById("preview");
+
+    openModalBtn.addEventListener("click", () => {
+        openModal.classList.remove("hidden");
+        openModal.classList.add("flex");
+    });
+
+    fileInput.addEventListener("change", handleFiles);
+
+    dropArea.addEventListener("click", () => fileInput.click());
+
+    dropArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropArea.classList.add("border-blue-500", "bg-blue-50");
+      });
+      
+      dropArea.addEventListener("dragleave", () => {
+        dropArea.classList.remove("border-blue-500", "bg-blue-50");
+      });
+      
+      dropArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropArea.classList.remove("border-blue-500", "bg-blue-50");
+        if (e.dataTransfer.files.length) {
+          fileInput.files = e.dataTransfer.files;
+          handleFiles();
+        }
+      });
+
+      function handleFiles() {
+        const file = fileInput.files[0];
+        if (file && file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            preview.innerHTML = `<img src="${reader.result}" class="rounded-lg max-h-52 mx-auto" />`;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          preview.innerHTML = `<p class="text-red-500 mt-2">Please upload a valid image.</p>`;
+        }
+      }
+    
+    closeModalBtn.addEventListener("click", () => {
+        openModal.classList.add("hidden");
+    });
 });
