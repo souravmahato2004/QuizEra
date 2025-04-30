@@ -15,10 +15,36 @@
     .font-outfit {
         font-family: 'Outfit', sans-serif;
     }
+
+    .slidebar {
+        height: calc(100vh - 180px);
+        overflow-y: auto;
+    }
+
+    .slidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .slidebar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .slidebar::-webkit-scrollbar-thumb {
+        background: #A435F0;
+        border-radius: 3px;
+    }
+
+    .slidebar::-webkit-scrollbar-thumb:hover {
+        background: #8a2be2;
+    }
+
+    [contenteditable="true"]:focus {
+        outline: none;
+        border-bottom: 1px dashed #A435F0;
+    }
+    
     </style>
 </head>
-
-<script src="../assets/js/quiz.js"></script>
 
 <body class="bg-[#E5E5E5] min-h-screen flex flex-col font-outfit">
     <div class="relative">
@@ -71,7 +97,8 @@
                 <!-- Share Button (opens share modal) -->
                 <button id="openShareModal"
                     class="bg-gray-200 px-4 py-1 rounded-full text-lg hover:bg-[#CFCFCF]">Share</button>
-                <button class="bg-[#A435F0] text-white px-4 py-1 rounded-full text-lg hover:bg-purple-700">Present</button>
+                <button
+                    class="bg-[#A435F0] text-white px-4 py-1 rounded-full text-lg hover:bg-purple-700">Present</button>
                 <!-- Share Modal (invite user) -->
                 <div id="shareModal"
                     class="absolute top-14 right-0 mt-2 w-80 bg-white shadow-lg border border-gray-200 rounded-xl p-4 z-50 hidden">
@@ -121,108 +148,61 @@
     </div>
     <!-- slidebar -->
     <div class="flex flex-row bg-[#E5E5E5] h-full mt-8">
-        <div class="flex flex-col w-[200px] bg-[#E5E5E5] mr-4 items-end">
+        <div class="flex flex-col w-[200px] bg-[#E5E5E5] mr-4 items-end slidebar">
             <!-- New Slide Button -->
-             
-            <button
+            <button id="newSlideBtn"
                 class="bg-[#A435F0] text-white h-10 w-[170px] flex justify-center items-center rounded-full hover:bg-purple-700 mb-6">
                 + New Slide
             </button>
 
-            <!-- Slide 1 -->
-            <div class="flex items-center gap-3 mb-4">
-                <span class="w-4 text-sm text-gray-700 text-right">1</span>
-                <div
-                    class="relative flex w-[170px] h-[94px] bg-white items-center justify-center rounded-lg border border-[#D0D0D0]">
-                    <i class="ri-gallery-view-2"></i>
-
-                    <!-- 3-dots dropdown trigger -->
-                    <div class="absolute bottom-2 right-2">
-                        <button onclick="toggleDropdown(this)">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 24 24"
-                                fill="currentColor">
-                                <path
-                                    d="M6 12a2 2 0 114 0 2 2 0 01-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0z" />
-                            </svg>
-                        </button>
-                        <!-- Dropdown Modal -->
-                        <div
-                            class="hidden absolute right-0 bottom-8 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20 dropdown-menu">
-                            <ul class="py-1 text-sm text-gray-700">
-                                <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100">✏️ Edit</button></li>
-                                <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100">📄 Duplicate</button>
-                                </li>
-                                <li><button class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">🗑️
-                                        Delete</button></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Slide 2 (same as above) -->
-            <div class="flex items-center gap-3 mb-4">
-                <span class="w-4 text-sm text-gray-700 text-right">2</span>
-                <div
-                    class="relative flex w-[170px] h-[94px] bg-white items-center justify-center rounded-lg border border-[#D0D0D0]">
-                    <i class="ri-rhythm-line"></i>
-
-                    <div class="absolute bottom-2 right-2">
-                        <button onclick="toggleDropdown(this)">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 24 24"
-                                fill="currentColor">
-                                <path
-                                    d="M6 12a2 2 0 114 0 2 2 0 01-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0z" />
-                            </svg>
-                        </button>
-                        <div
-                            class="hidden absolute right-0 bottom-8 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20 dropdown-menu">
-                            <ul class="py-1 text-sm text-gray-700">
-                                <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100">✏️ Edit</button></li>
-                                <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100">📄 Duplicate</button>
-                                </li>
-                                <li><button class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">🗑️
-                                        Delete</button></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+            <!-- Slides Container -->
+            <div id="slidesContainer" class="w-full">
+                <!-- Slides will be added here dynamically -->
             </div>
         </div>
 
-        <div
+        <!-- Main Content Area -->
+        <div id="mainContent"
             class="bg-white border-2 flex flex-col border-transparent hover:border-purple-300 ml-2 rounded-lg py-10 pl-12 pr-10 w-full max-w-4xl h-[500px] shadow-lg transition-all duration-200">
-            <h1 class="text-3xl font-small text-black mb-8">Type your question here...</h1>
+            <h1 id="questionText" class="text-3xl font-small text-black mb-8" contenteditable="true">Type your question
+                here...</h1>
 
-            <h2 class="text-xl font-small text-black mt-12 mb-2">Options</h2>
-
-            <div class="grid grid-cols-2 gap-6 pt-4">
-                <button
-                    class="bg-red-500 text-black text-xl font-medium py-4 rounded-lg hover:bg-red-600 transition">Option1</button>
-                <button
-                    class="bg-yellow-400 text-black text-xl font-medium py-4 rounded-lg hover:bg-yellow-500 transition">Option2</button>
-                <button
-                    class="bg-sky-400 text-black text-xl font-medium py-4 rounded-lg hover:bg-sky-500 transition">Option3</button>
-                <button
-                    class="bg-green-500 text-black text-xl font-medium py-4 rounded-lg hover:bg-green-600 transition">Option4</button>
+            <div id="contentArea">
+                <!-- Content will change based on question type -->
+                <h2 class="text-xl font-small text-black mt-12 mb-2">Options</h2>
+                <div class="grid grid-cols-2 gap-6 pt-4">
+                    <button
+                        class="bg-red-500 text-black text-xl font-medium py-4 rounded-lg hover:bg-red-600 transition">Option1</button>
+                    <button
+                        class="bg-yellow-400 text-black text-xl font-medium py-4 rounded-lg hover:bg-yellow-500 transition">Option2</button>
+                    <button
+                        class="bg-sky-400 text-black text-xl font-medium py-4 rounded-lg hover:bg-sky-500 transition">Option3</button>
+                    <button
+                        class="bg-green-500 text-black text-xl font-medium py-4 rounded-lg hover:bg-green-600 transition">Option4</button>
+                </div>
             </div>
         </div>
 
+        <!-- Sidebar Controls -->
         <div class="w-[300px] ml-8 bg-white p-5 rounded-xl shadow-md relative font-sans text-sm">
             <button class="absolute top-3 right-3 text-2xl text-gray-500">&times;</button>
 
             <h2 class="text-lg font-semibold mb-4">Slide</h2>
 
             <label class="text-xs font-medium text-gray-700 mb-1 block">Question Type</label>
-            <select class="w-full bg-gray-100 p-2 rounded-md mb-4 text-sm text-gray-800 focus:outline-none">
-                <option>Multiple Choice</option>
-                <option>Fill in the blank</option>
+            <select id="questionType"
+                class="w-full bg-gray-100 p-2 rounded-md mb-4 text-sm text-gray-800 focus:outline-none">
+                <option value="multiple">Multiple Choice</option>
+                <option value="fillblank">Fill in the blank</option>
+                <option value="truefalse">True/False</option>
+                <option value="shortanswer">Short Answer</option>
             </select>
 
             <label class="text-xs font-medium text-gray-700 block mb-1">Image</label>
             <p class="text-xs text-gray-400 mb-2">We support .jpg, .png, .jpeg and .png</p>
             <div>
-            <button id="openModalBtn" class="hover:curson-pointer"><img src="../assets/images/draganddrop.png" alt="dragndrop" class="h-8 w-auto rounded-md"></button>
+                <button id="openModalBtn" class="hover:cursor-pointer"><img src="../assets/images/draganddrop.png"
+                        alt="dragndrop" class="h-8 w-auto rounded-md"></button>
             </div>
 
             <hr class="border-t border-purple-300 mb-4">
@@ -251,6 +231,8 @@
 
             <p class="text-xs underline text-gray-500 cursor-pointer">Reset default background</p>
         </div>
+
+        <!-- Quick Actions -->
         <div class="flex flex-col h-1/2 gap-4 bg-white p-3 rounded-xl shadow w-[100px] ml-10">
             <button
                 class="flex flex-col items-center justify-center bg-gray-100 border border-purple-300 rounded-lg py-2 hover:shadow-md hover:border-[#A435F0]">
@@ -288,38 +270,27 @@
                     viewBox="0 0 24 24">
                     <path d="M4 3h9l5 5v13a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zm9 0v5h5" />
                 </svg>
-                <span class="text-xs mt-1 text-gray-700">Templete</span>
+                <span class="text-xs mt-1 text-gray-700">Template</span>
             </button>
         </div>
-
-
     </div>
+
     <!-- modal for uploading image. -->
     <div id="openModal" class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center z-50">
         <div class="bg-white rounded-2xl p-6 w-[600px] h-auto">
             <h2 class="text-xl font-semibold mb-4 text-center text-purple-700">Upload Image</h2>
-            <div id="drop-area" class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer transition hover:border-purple-500 hover:bg-purple-50">
+            <div id="drop-area"
+                class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer transition hover:border-purple-500 hover:bg-purple-50">
                 <input type="file" id="fileElem" accept="image/*" class="hidden">
                 <p class="text-gray-500 mb-2">Drag & drop an image here<br>or click to upload</p>
                 <div id="preview" class="mt-4"></div>
             </div>
-            <button id="closeModalBtn" class="mt-10 ml-52 bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 w-1/4">Close</button>
+            <button id="closeModalBtn"
+                class="mt-10 ml-52 bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 w-1/4">Close</button>
         </div>
     </div>
-</body>
-<script>
-function toggleDropdown(button) {
-    const dropdown = button.nextElementSibling;
-    dropdown.classList.toggle('hidden');
 
-    // Close dropdown if clicking outside
-    document.addEventListener("click", function handler(event) {
-        if (!button.contains(event.target) && !dropdown.contains(event.target)) {
-            dropdown.classList.add("hidden");
-            document.removeEventListener("click", handler);
-        }
-    });
-}
-</script>
+    <script src="../assets/js/quiz.js"></script>
+</body>
 
 </html>
