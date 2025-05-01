@@ -150,12 +150,12 @@
         <div class="flex flex-col w-[200px] bg-[#E5E5E5] mr-4 items-end slidebar">
             <!-- New Slide Button -->
             <button id="newSlideBtn"
-                class="bg-[#A435F0] text-white h-10 w-[170px] flex justify-center items-center rounded-full hover:bg-purple-700 mb-6">
+                class="bg-[#A435F0] absolute text-white h-10 w-[170px] z-20 flex justify-center items-center rounded-full hover:bg-purple-700 mb-6">
                 + New Slide
             </button>
 
             <!-- Slides Container -->
-            <div id="slidesContainer" class="w-full">
+            <div id="slidesContainer" class="w-full mt-12">
                 <!-- Slides will be added here dynamically -->
             </div>
         </div>
