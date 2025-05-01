@@ -4,22 +4,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================
   let currentSlide = null;
   let slides = [];
-  
+  let draggedSlide = null;
+  let dragStartIndex = -1;
+
   // ======================
   // DOM ELEMENTS
   // ======================
   const dom = {
-    // Slide management
     newSlideBtn: document.getElementById("newSlideBtn"),
     slidesContainer: document.getElementById("slidesContainer"),
-    
-    // Editor elements
     questionType: document.getElementById("questionType"),
     mainContent: document.getElementById("mainContent"),
     contentArea: document.getElementById("contentArea"),
     questionText: document.getElementById("questionText"),
-    
-    // Modals
     shareModal: document.getElementById("shareModal"),
     collaboratorsModal: document.getElementById("collaboratorsModal"),
     openShareBtn: document.getElementById("openShareModal"),
@@ -27,8 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelShareBtn: document.getElementById("cancelShare"),
     closeCollaboratorsBtn: document.getElementById("closeCollaborators"),
     shareContainer: document.getElementById("shareContainer"),
-    
-    // Image upload
     openModalBtn: document.getElementById("openModalBtn"),
     imageModal: document.getElementById("openModal"),
     closeModalBtn: document.getElementById("closeModalBtn"),
@@ -41,36 +36,27 @@ document.addEventListener("DOMContentLoaded", () => {
   // INITIALIZATION
   // ======================
   function initialize() {
-    // Verify critical elements exist
     if (!dom.slidesContainer || !dom.newSlideBtn) {
       console.error("Critical elements missing!");
       return;
     }
     
-    // Clear any existing content
     dom.slidesContainer.innerHTML = '';
     slides = [];
-    
-    // Create first slide
     createNewSlide();
-    
-    // Set up event listeners
     setupEventListeners();
-    
     console.log("Quiz editor initialized successfully");
   }
 
   // ======================
-  // CORE FUNCTIONS
+  // CORE FUNCTIONS (MODIFIED)
   // ======================
-  function createNewSlide() {
+  function createNewSlide(position = -1) {
     try {
       const slideId = Date.now();
-      const slideNumber = slides.length + 1;
-      
       const slideHTML = `
-        <div class="flex items-center gap-3 mb-4 slide" data-id="${slideId}">
-          <span class="w-4 text-sm text-gray-700 text-right">${slideNumber}</span>
+        <div class="flex items-center gap-3 mb-4 slide" data-id="${slideId}" draggable="true">
+          <span class="w-4 text-sm text-gray-700 text-right">${slides.length + 1}</span>
           <div class="relative flex w-[170px] h-[94px] bg-white items-center justify-center rounded-lg border border-[#D0D0D0]">
             <i class="ri-gallery-view-2"></i>
             <div class="absolute bottom-2 right-2">
@@ -90,9 +76,13 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
       `;
-      
-      dom.slidesContainer.insertAdjacentHTML('beforeend', slideHTML);
-      
+
+      if (position >= 0 && position < dom.slidesContainer.children.length) {
+        dom.slidesContainer.children[position].insertAdjacentHTML('afterend', slideHTML);
+      } else {
+        dom.slidesContainer.insertAdjacentHTML('beforeend', slideHTML);
+      }
+
       const slideData = {
         id: slideId,
         question: "Type your question here...",
@@ -101,13 +91,18 @@ document.addEventListener("DOMContentLoaded", () => {
         correctAnswer: 0,
         image: null
       };
-      
-      slides.push(slideData);
-      selectSlide(slideId);
-      
-      // Add event listeners to the new slide
-      const newSlide = dom.slidesContainer.lastElementChild;
+
+      if (position >= 0) {
+        slides.splice(position, 0, slideData);
+      } else {
+        slides.push(slideData);
+      }
+
+      const newSlide = dom.slidesContainer.querySelector(`[data-id="${slideId}"]`);
       setupSlideEventListeners(newSlide, slideId);
+      addDragHandlers(newSlide);
+      renumberSlides();
+      selectSlide(slideId);
       
       return slideId;
     } catch (error) {
@@ -116,22 +111,147 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // ======================
+  // DRAG-AND-DROP FEATURES (NEW)
+  // ======================
+  function addDragHandlers(slideElement) {
+    slideElement.addEventListener('dragstart', handleDragStart);
+    slideElement.addEventListener('dragover', handleDragOver);
+    slideElement.addEventListener('drop', handleDrop);
+    slideElement.addEventListener('dragend', handleDragEnd);
+  }
+
+  function handleDragStart(e) {
+    draggedSlide = e.target.closest('.slide');
+    dragStartIndex = Array.from(dom.slidesContainer.children).indexOf(draggedSlide);
+    e.dataTransfer.effectAllowed = 'move';
+    draggedSlide.style.opacity = '0.5';
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    const targetSlide = e.target.closest('.slide');
+    if (!targetSlide || targetSlide === draggedSlide) return;
+    
+    const bounding = targetSlide.getBoundingClientRect();
+    const offset = e.clientY - bounding.top;
+    const insertPosition = offset < bounding.height / 2 ? 'beforebegin' : 'afterend';
+    
+    targetSlide.style.borderTop = insertPosition === 'beforebegin' ? '2px solid #A435F0' : 'none';
+    targetSlide.style.borderBottom = insertPosition === 'afterend' ? '2px solid #A435F0' : 'none';
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    const targetSlide = e.target.closest('.slide');
+    if (!targetSlide || !draggedSlide) return;
+
+    const bounding = targetSlide.getBoundingClientRect();
+    const insertPosition = e.clientY - bounding.top < bounding.height / 2 
+      ? 'beforebegin' 
+      : 'afterend';
+
+    targetSlide.insertAdjacentElement(insertPosition, draggedSlide);
+    const newIndex = Array.from(dom.slidesContainer.children).indexOf(draggedSlide);
+    const movedSlide = slides.splice(dragStartIndex, 1)[0];
+    slides.splice(newIndex, 0, movedSlide);
+
+    renumberSlides();
+    resetDragStyles();
+  }
+
+  function handleDragEnd() {
+    resetDragStyles();
+    draggedSlide = null;
+    dragStartIndex = -1;
+  }
+
+  function resetDragStyles() {
+    dom.slidesContainer.querySelectorAll('.slide').forEach(slide => {
+      slide.style.opacity = '1';
+      slide.style.borderTop = 'none';
+      slide.style.borderBottom = 'none';
+    });
+  }
+
+  // ======================
+  // MODIFIED SLIDE ACTIONS
+  // ======================
+  function duplicateSlide(slideId) {
+    const originalIndex = slides.findIndex(s => s.id === slideId);
+    if (originalIndex === -1) return;
+
+    const newId = createNewSlide(originalIndex + 1);
+    if (!newId) return;
+
+    const original = slides[originalIndex];
+    const newSlide = slides[originalIndex + 1];
+    
+    newSlide.question = original.question + " (Copy)";
+    newSlide.type = original.type;
+    newSlide.options = JSON.parse(JSON.stringify(original.options));
+    newSlide.correctAnswer = original.correctAnswer;
+    newSlide.image = original.image;
+
+    selectSlide(newId);
+    updateMainContent();
+  }
+
+  function deleteSlide(slideId) {
+    if (slides.length <= 1) {
+      alert("Your quiz must have at least one slide!");
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this slide?')) {
+      document.querySelector(`.slide[data-id="${slideId}"]`)?.remove();
+      slides = slides.filter(s => s.id !== slideId);
+      renumberSlides();
+      if (slides.length > 0) selectSlide(slides[0].id);
+    }
+  }
+
+  // ======================
+  // HELPER FUNCTIONS (NEW/UPDATED)
+  // ======================
+  function renumberSlides() {
+    dom.slidesContainer.querySelectorAll('.slide').forEach((slideEl, index) => {
+      slideEl.querySelector('span').textContent = index + 1;
+    });
+  }
+
+  function selectSlide(slideId) {
+    const slide = slides.find(s => s.id === slideId);
+    if (!slide) return;
+    
+    currentSlide = slide;
+    document.querySelectorAll('.slide').forEach(slideEl => {
+      slideEl.classList.remove('border-purple-500', 'bg-purple-50');
+    });
+    
+    const slideElement = document.querySelector(`.slide[data-id="${slideId}"]`);
+    if (slideElement) {
+      slideElement.classList.add('border-purple-500', 'bg-purple-50');
+    }
+    updateMainContent();
+  }
+
+  // ======================
+  // EXISTING FUNCTIONALITY
+  // ======================
   function setupSlideEventListeners(slideElement, slideId) {
-    // Slide selection
     slideElement.addEventListener('click', (e) => {
       if (!e.target.closest('.dropdown-toggle') && !e.target.closest('.dropdown-menu')) {
         selectSlide(slideId);
       }
     });
     
-    // Dropdown toggle
     const dropdownToggle = slideElement.querySelector('.dropdown-toggle');
     dropdownToggle?.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleDropdown(e.currentTarget);
     });
     
-    // Slide actions
     slideElement.querySelector('.edit-slide-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       editSlide(slideId);
@@ -148,26 +268,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function selectSlide(slideId) {
-    const slide = slides.find(s => s.id === slideId);
-    if (!slide) return;
-    
-    currentSlide = slide;
-    
-    // Update UI
-    document.querySelectorAll('.slide').forEach(slideEl => {
-      slideEl.classList.remove('border-purple-500', 'bg-purple-50');
-    });
-    
-    const slideElement = document.querySelector(`.slide[data-id="${slideId}"]`);
-    if (slideElement) {
-      slideElement.classList.add('border-purple-500', 'bg-purple-50');
-    }
-    
-    // Update editor
-    updateMainContent();
-  }
-
   function updateMainContent() {
     if (!currentSlide) return;
     
@@ -176,24 +276,12 @@ document.addEventListener("DOMContentLoaded", () => {
     dom.contentArea.innerHTML = '';
     
     switch(currentSlide.type) {
-      case 'multiple':
-        renderMultipleChoice();
-        break;
-      case 'fillblank':
-        renderFillBlank();
-        break;
-      case 'truefalse':
-        renderTrueFalse();
-        break;
-      case 'shortanswer':
-        renderShortAnswer();
-        break;
+      case 'multiple': renderMultipleChoice(); break;
+      case 'fillblank': renderFillBlank(); break;
+      case 'truefalse': renderTrueFalse(); break;
+      case 'shortanswer': renderShortAnswer(); break;
     }
   }
-
-  // ======================
-  // QUESTION TYPE RENDERERS
-  // ======================
 
   function renderMultipleChoice() {
     dom.contentArea.innerHTML = `
@@ -212,7 +300,6 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
     
-    // Add option event listeners
     document.querySelectorAll('.option-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const index = parseInt(e.currentTarget.dataset.index);
@@ -286,75 +373,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ======================
-  // SLIDE ACTIONS
-  // ======================
-
-  function editSlide(slideId) {
-    dom.questionText.focus();
-    console.log("Editing slide:", slideId);
-  }
-
-  function duplicateSlide(slideId) {
-    const original = slides.find(s => s.id === slideId);
-    if (!original) return;
-    
-    const newId = createNewSlide();
-    if (!newId) return;
-    
-    const newSlide = slides.find(s => s.id === newId);
-    if (!newSlide) return;
-    
-    // Copy properties
-    newSlide.question = original.question + " (Copy)";
-    newSlide.type = original.type;
-    newSlide.options = [...original.options];
-    newSlide.correctAnswer = original.correctAnswer;
-    newSlide.image = original.image;
-    
-    selectSlide(newId);
-    updateMainContent();
-  }
-
-  function deleteSlide(slideId) {
-    if (slides.length <= 1) {
-      alert("Your quiz must have at least one slide!");
-      return;
-    }
-
-    if (confirm('Are you sure you want to delete this slide?')) {
-      // Remove from DOM
-      document.querySelector(`.slide[data-id="${slideId}"]`)?.remove();
-      
-      // Remove from array
-      slides = slides.filter(s => s.id !== slideId);
-      
-      // Renumber slides
-      document.querySelectorAll('.slide').forEach((el, i) => {
-        el.querySelector('span').textContent = i + 1;
-      });
-      
-      // Select another slide
-      if (slides.length > 0) selectSlide(slides[0].id);
-    }
-  }
-
-  // ======================
-  // UTILITY FUNCTIONS
-  // ======================
-
   function toggleDropdown(button) {
     const dropdown = button.nextElementSibling;
     dropdown.classList.toggle('hidden');
     
-    // Close other dropdowns
     document.querySelectorAll('.dropdown-menu').forEach(item => {
       if (item !== dropdown && !item.classList.contains('hidden')) {
         item.classList.add('hidden');
       }
     });
     
-    // Close when clicking outside
     document.addEventListener('click', function handler(e) {
       if (!button.contains(e.target)) {
         dropdown.classList.add('hidden');
@@ -372,10 +400,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const colors = ['red-600', 'yellow-500', 'sky-500', 'green-600', 'purple-600', 'pink-600'];
     return colors[index % colors.length];
   }
-
-  // ======================
-  // EVENT HANDLERS
-  // ======================
 
   function handleFileUpload() {
     const file = dom.fileInput.files[0];
@@ -398,16 +422,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================
   // EVENT LISTENERS
   // ======================
-
   function setupEventListeners() {
-    // Slide management
-    dom.newSlideBtn?.addEventListener('click', createNewSlide);
+    dom.newSlideBtn?.addEventListener('click', () => createNewSlide());
     
-    // Question editor
     dom.questionType?.addEventListener('change', function() {
       if (currentSlide) {
         currentSlide.type = this.value;
-        // Reset options based on type
         if (this.value === 'multiple') {
           currentSlide.options = ["Option 1", "Option 2", "Option 3", "Option 4"];
           currentSlide.correctAnswer = 0;
@@ -428,59 +448,31 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Image upload
-    dom.openModalBtn?.addEventListener('click', () => {
-      dom.imageModal.classList.remove('hidden');
-      dom.imageModal.classList.add('flex');
-    });
-
-    dom.closeModalBtn?.addEventListener('click', () => {
-      dom.imageModal.classList.add('hidden');
-    });
-
+    // Image upload handlers
+    dom.openModalBtn?.addEventListener('click', () => dom.imageModal.classList.remove('hidden'));
+    dom.closeModalBtn?.addEventListener('click', () => dom.imageModal.classList.add('hidden'));
     dom.fileInput?.addEventListener('change', handleFileUpload);
     dom.dropArea?.addEventListener('click', () => dom.fileInput.click());
-
-    dom.dropArea?.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dom.dropArea.classList.add('border-blue-500', 'bg-blue-50');
-    });
-
-    dom.dropArea?.addEventListener('dragleave', () => {
-      dom.dropArea.classList.remove('border-blue-500', 'bg-blue-50');
-    });
-
+    dom.dropArea?.addEventListener('dragover', (e) => e.preventDefault());
     dom.dropArea?.addEventListener('drop', (e) => {
       e.preventDefault();
-      dom.dropArea.classList.remove('border-blue-500', 'bg-blue-50');
-      if (e.dataTransfer.files.length) {
-        dom.fileInput.files = e.dataTransfer.files;
-        handleFileUpload();
-      }
+      dom.fileInput.files = e.dataTransfer.files;
+      handleFileUpload();
     });
 
-    // Share modal
+    // Collaboration modal handlers
     dom.openShareBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       dom.shareModal.classList.toggle('hidden');
       dom.collaboratorsModal.classList.add('hidden');
     });
-
-    dom.cancelShareBtn?.addEventListener('click', () => {
-      dom.shareModal.classList.add('hidden');
-    });
-
+    dom.cancelShareBtn?.addEventListener('click', () => dom.shareModal.classList.add('hidden'));
     dom.profileImage?.addEventListener('click', (e) => {
       e.stopPropagation();
       dom.collaboratorsModal.classList.toggle('hidden');
       dom.shareModal.classList.add('hidden');
     });
-
-    dom.closeCollaboratorsBtn?.addEventListener('click', () => {
-      dom.collaboratorsModal.classList.add('hidden');
-    });
-
-    // Close modals when clicking outside
+    dom.closeCollaboratorsBtn?.addEventListener('click', () => dom.collaboratorsModal.classList.add('hidden'));
     document.addEventListener('click', (e) => {
       if (!dom.shareContainer.contains(e.target)) {
         dom.shareModal.classList.add('hidden');
@@ -491,5 +483,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Start the application
   initialize();
-
 });
