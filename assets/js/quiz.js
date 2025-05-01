@@ -1,3 +1,4 @@
+// quiz-editor.js
 document.addEventListener("DOMContentLoaded", () => {
   // ======================
   // STATE MANAGEMENT
@@ -29,7 +30,8 @@ document.addEventListener("DOMContentLoaded", () => {
     closeModalBtn: document.getElementById("closeModalBtn"),
     dropArea: document.getElementById("dropArea"),
     fileInput: document.getElementById("fileElem"),
-    preview: document.getElementById("preview")
+    preview: document.getElementById("preview"),
+    optionsContainer: document.getElementById("optionsContainer")
   };
 
   // ======================
@@ -40,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Critical elements missing!");
       return;
     }
-    
+
     dom.slidesContainer.innerHTML = '';
     slides = [];
     createNewSlide();
@@ -49,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================
-  // CORE FUNCTIONS (MODIFIED)
+  // CORE FUNCTIONS
   // ======================
   function createNewSlide(position = -1) {
     try {
@@ -103,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
       addDragHandlers(newSlide);
       renumberSlides();
       selectSlide(slideId);
-      
+
       return slideId;
     } catch (error) {
       console.error("Error creating slide:", error);
@@ -112,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================
-  // DRAG-AND-DROP FEATURES (NEW)
+  // DRAG-AND-DROP FUNCTIONS
   // ======================
   function addDragHandlers(slideElement) {
     slideElement.addEventListener('dragstart', handleDragStart);
@@ -132,11 +134,11 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const targetSlide = e.target.closest('.slide');
     if (!targetSlide || targetSlide === draggedSlide) return;
-    
+
     const bounding = targetSlide.getBoundingClientRect();
     const offset = e.clientY - bounding.top;
     const insertPosition = offset < bounding.height / 2 ? 'beforebegin' : 'afterend';
-    
+
     targetSlide.style.borderTop = insertPosition === 'beforebegin' ? '2px solid #A435F0' : 'none';
     targetSlide.style.borderBottom = insertPosition === 'afterend' ? '2px solid #A435F0' : 'none';
   }
@@ -147,8 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!targetSlide || !draggedSlide) return;
 
     const bounding = targetSlide.getBoundingClientRect();
-    const insertPosition = e.clientY - bounding.top < bounding.height / 2 
-      ? 'beforebegin' 
+    const insertPosition = e.clientY - bounding.top < bounding.height / 2
+      ? 'beforebegin'
       : 'afterend';
 
     targetSlide.insertAdjacentElement(insertPosition, draggedSlide);
@@ -175,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================
-  // MODIFIED SLIDE ACTIONS
+  // SLIDE ACTIONS
   // ======================
   function duplicateSlide(slideId) {
     const originalIndex = slides.findIndex(s => s.id === slideId);
@@ -186,7 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const original = slides[originalIndex];
     const newSlide = slides[originalIndex + 1];
-    
+
     newSlide.question = original.question + " (Copy)";
     newSlide.type = original.type;
     newSlide.options = JSON.parse(JSON.stringify(original.options));
@@ -212,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================
-  // HELPER FUNCTIONS (NEW/UPDATED)
+  // HELPER FUNCTIONS
   // ======================
   function renumberSlides() {
     dom.slidesContainer.querySelectorAll('.slide').forEach((slideEl, index) => {
@@ -223,12 +225,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function selectSlide(slideId) {
     const slide = slides.find(s => s.id === slideId);
     if (!slide) return;
-    
+
     currentSlide = slide;
     document.querySelectorAll('.slide').forEach(slideEl => {
       slideEl.classList.remove('border-purple-500', 'bg-purple-50');
     });
-    
+
     const slideElement = document.querySelector(`.slide[data-id="${slideId}"]`);
     if (slideElement) {
       slideElement.classList.add('border-purple-500', 'bg-purple-50');
@@ -236,159 +238,205 @@ document.addEventListener("DOMContentLoaded", () => {
     updateMainContent();
   }
 
-  // ======================
-  // EXISTING FUNCTIONALITY
-  // ======================
   function setupSlideEventListeners(slideElement, slideId) {
     slideElement.addEventListener('click', (e) => {
       if (!e.target.closest('.dropdown-toggle') && !e.target.closest('.dropdown-menu')) {
         selectSlide(slideId);
       }
     });
-    
+
     const dropdownToggle = slideElement.querySelector('.dropdown-toggle');
     dropdownToggle?.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleDropdown(e.currentTarget);
     });
-    
+
     slideElement.querySelector('.edit-slide-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       editSlide(slideId);
     });
-    
+
     slideElement.querySelector('.duplicate-slide-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       duplicateSlide(slideId);
     });
-    
+
     slideElement.querySelector('.delete-slide-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteSlide(slideId);
     });
   }
 
-  function updateMainContent() {
-    if (!currentSlide) return;
-    
-    dom.questionText.textContent = currentSlide.question;
-    dom.questionType.value = currentSlide.type;
-    dom.contentArea.innerHTML = '';
-    
-    switch(currentSlide.type) {
-      case 'multiple': renderMultipleChoice(); break;
-      case 'fillblank': renderFillBlank(); break;
-      case 'truefalse': renderTrueFalse(); break;
-      case 'shortanswer': renderShortAnswer(); break;
-    }
-  }
-
-  function renderMultipleChoice() {
-    dom.contentArea.innerHTML = `
-      <h2 class="text-xl font-small text-black mt-12 mb-2">Options</h2>
-      <div class="grid grid-cols-2 gap-6 pt-4" id="optionsContainer">
-        ${currentSlide.options.map((opt, i) => `
-          <button class="bg-${getOptionColor(i)} text-black text-xl font-medium py-4 rounded-lg hover:bg-${getOptionHoverColor(i)} transition option-btn ${currentSlide.correctAnswer === i ? 'ring-2 ring-offset-2 ring-purple-500' : ''}"
-                  data-index="${i}">
-            ${opt}
-          </button>
-        `).join('')}
-      </div>
-      <div class="flex gap-2 mt-4">
-        <button class="bg-gray-200 px-4 py-2 rounded-md hover:bg-gray-300" id="addOptionBtn">+ Add Option</button>
-        <button class="bg-gray-200 px-4 py-2 rounded-md hover:bg-gray-300" id="removeOptionBtn" ${currentSlide.options.length <= 2 ? 'disabled' : ''}>- Remove Option</button>
-      </div>
-    `;
-    
-    document.querySelectorAll('.option-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const index = parseInt(e.currentTarget.dataset.index);
-        currentSlide.correctAnswer = index;
-        updateMainContent();
-      });
-    });
-    
-    document.getElementById("addOptionBtn")?.addEventListener('click', () => {
-      currentSlide.options.push(`Option ${currentSlide.options.length + 1}`);
-      updateMainContent();
-    });
-    
-    document.getElementById("removeOptionBtn")?.addEventListener('click', () => {
-      if (currentSlide.options.length > 2) {
-        currentSlide.options.pop();
-        if (currentSlide.correctAnswer >= currentSlide.options.length) {
-          currentSlide.correctAnswer = currentSlide.options.length - 1;
-        }
-        updateMainContent();
-      }
-    });
-  }
-
-  function renderFillBlank() {
-    dom.contentArea.innerHTML = `
-      <h2 class="text-xl font-small text-black mt-12 mb-2">Answer</h2>
-      <input type="text" class="w-full p-4 border border-gray-300 rounded-lg text-xl" 
-             value="${currentSlide.options[0] || ''}" id="fillBlankAnswer">
-    `;
-    
-    document.getElementById("fillBlankAnswer")?.addEventListener('input', (e) => {
-      currentSlide.options[0] = e.target.value;
-    });
-  }
-
-  function renderTrueFalse() {
-    dom.contentArea.innerHTML = `
-      <h2 class="text-xl font-small text-black mt-12 mb-2">Select Answer</h2>
-      <div class="grid grid-cols-2 gap-6 pt-4">
-        <button class="bg-green-500 text-black text-xl font-medium py-4 rounded-lg hover:bg-green-600 transition ${currentSlide.correctAnswer === 0 ? 'ring-2 ring-offset-2 ring-green-500' : ''}" id="trueBtn">
-          True
-        </button>
-        <button class="bg-red-500 text-black text-xl font-medium py-4 rounded-lg hover:bg-red-600 transition ${currentSlide.correctAnswer === 1 ? 'ring-2 ring-offset-2 ring-red-500' : ''}" id="falseBtn">
-          False
-        </button>
-      </div>
-    `;
-    
-    document.getElementById("trueBtn")?.addEventListener('click', () => {
-      currentSlide.correctAnswer = 0;
-      updateMainContent();
-    });
-    
-    document.getElementById("falseBtn")?.addEventListener('click', () => {
-      currentSlide.correctAnswer = 1;
-      updateMainContent();
-    });
-  }
-
-  function renderShortAnswer() {
-    dom.contentArea.innerHTML = `
-      <h2 class="text-xl font-small text-black mt-12 mb-2">Expected Answer</h2>
-      <textarea class="w-full p-4 border border-gray-300 rounded-lg text-xl h-32" 
-                placeholder="Type the expected answer here..." 
-                id="shortAnswerText">${currentSlide.options[0] || ''}</textarea>
-    `;
-    
-    document.getElementById("shortAnswerText")?.addEventListener('input', (e) => {
-      currentSlide.options[0] = e.target.value;
-    });
-  }
-
   function toggleDropdown(button) {
     const dropdown = button.nextElementSibling;
     dropdown.classList.toggle('hidden');
-    
+
     document.querySelectorAll('.dropdown-menu').forEach(item => {
       if (item !== dropdown && !item.classList.contains('hidden')) {
         item.classList.add('hidden');
       }
     });
-    
+
     document.addEventListener('click', function handler(e) {
       if (!button.contains(e.target)) {
         dropdown.classList.add('hidden');
         document.removeEventListener('click', handler);
       }
     }, { once: true });
+  }
+
+  // ======================
+  // CONTENT RENDERING
+  // ======================
+  function updateMainContent() {
+    if (!currentSlide) return;
+
+    dom.questionText.textContent = currentSlide.question;
+    dom.questionType.value = currentSlide.type;
+    dom.contentArea.innerHTML = '';
+
+    switch (currentSlide.type) {
+      case 'multiple':
+        renderMultipleChoice();
+        renderOptionsEditor();
+        break;
+      case 'fillblank':
+        renderFillBlank();
+        renderAnswerEditor();
+        break;
+      case 'shortanswer':
+        renderShortAnswer();
+        renderAnswerEditor();
+        break;
+    }
+  }
+
+  function renderOptionsEditor() {
+    dom.optionsContainer.innerHTML = `
+      <h3 class="text-sm font-medium mb-2">Options</h3>
+      <div class="space-y-2">
+        ${currentSlide.options.map((option, index) => `
+          <div class="flex items-center gap-2">
+            <input type="radio" name="correctOption" 
+                   ${currentSlide.correctAnswer === index ? 'checked' : ''} 
+                   value="${index}" class="correct-option-radio">
+            <input type="text" value="${option}" 
+                   class="w-full p-1 border rounded option-input" 
+                   data-index="${index}">
+            <button class="delete-option-btn text-red-500" data-index="${index}">×</button>
+          </div>
+        `).join('')}
+      </div>
+      <button id="addOptionBtn" class="mt-2 text-sm text-purple-700 hover:underline">+ Add Option</button>
+    `;
+
+    document.querySelectorAll('.option-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const index = parseInt(e.target.dataset.index);
+        currentSlide.options[index] = e.target.value;
+        const optionText = document.querySelector(`.option-btn[data-index="${index}"] .option-text`);
+        if (optionText) {
+          optionText.textContent = e.target.value;
+        }
+      });
+    });
+
+    document.querySelectorAll('.correct-option-radio').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        currentSlide.correctAnswer = parseInt(e.target.value);
+        updateMainContent();
+      });
+    });
+
+    document.querySelectorAll('.delete-option-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt(e.target.dataset.index);
+        if (currentSlide.options.length <= 2) {
+          alert("You must have at least 2 options");
+          return;
+        }
+        currentSlide.options.splice(index, 1);
+        if (currentSlide.correctAnswer >= index) {
+          currentSlide.correctAnswer = Math.max(0, currentSlide.correctAnswer - 1);
+        }
+        updateMainContent();
+      });
+    });
+
+    document.getElementById('addOptionBtn')?.addEventListener('click', () => {
+      if (currentSlide.options.length < 6) {
+        currentSlide.options.push(`Option ${currentSlide.options.length + 1}`);
+        updateMainContent();
+      }
+    });
+  }
+
+  function renderAnswerEditor() {
+    dom.optionsContainer.innerHTML = `
+      <h3 class="text-sm font-medium mb-2">Correct Answer</h3>
+      <input type="text" value="${currentSlide.options[0] || ''}" 
+             class="w-full p-2 border rounded answer-input">
+    `;
+
+    document.querySelector('.answer-input')?.addEventListener('input', (e) => {
+      currentSlide.options[0] = e.target.value;
+    });
+  }
+
+  function renderMultipleChoice() {
+    dom.contentArea.innerHTML = `
+      <h2 class="text-xl font-small text-black mt-12 mb-2">Options</h2>
+      <div class="grid grid-cols-2 gap-6 pt-4" style="grid-auto-rows: minmax(0, 1fr); align-items: stretch;">
+        ${currentSlide.options.map((opt, i) => `
+          <div class="relative h-full">
+            <button class="w-full h-full bg-${getOptionColor(i)} text-black text-xl font-medium py-4 rounded-lg hover:bg-${getOptionHoverColor(i)} transition-all option-btn ${currentSlide.correctAnswer === i ? 'ring-2 ring-offset-2 ring-purple-500' : ''} min-h-[60px] whitespace-normal break-words flex items-center justify-center px-2"
+                    data-index="${i}">
+              <span class="option-text" contenteditable="true">${opt}</span>
+            </button>
+            ${currentSlide.correctAnswer === i ?
+        '<div class="absolute top-0 right-0 bg-purple-500 text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg">Correct</div>' :
+        ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (e.target.classList.contains('option-text')) return;
+        const index = parseInt(e.currentTarget.dataset.index);
+        currentSlide.correctAnswer = index;
+        updateMainContent();
+      });
+    });
+
+    document.querySelectorAll('.option-text').forEach((span, index) => {
+      span.addEventListener('input', (e) => {
+        currentSlide.options[index] = e.target.textContent;
+      });
+
+      span.addEventListener('blur', (e) => {
+        currentSlide.options[index] = e.target.textContent;
+      });
+    });
+  }
+
+  function renderFillBlank() {
+    dom.contentArea.innerHTML = `
+      <h2 class="text-xl font-small text-black mt-12 mb-2">Answer</h2>
+      <div class="bg-gray-100 p-4 rounded-lg">
+        <p class="text-gray-700">Participants will see a blank field to fill in</p>
+      </div>
+    `;
+  }
+
+  function renderShortAnswer() {
+    dom.contentArea.innerHTML = `
+      <h2 class="text-xl font-small text-black mt-12 mb-2">Expected Answer</h2>
+      <div class="bg-gray-100 p-4 rounded-lg">
+        <p class="text-gray-700">Participants will see a text area to type their answer</p>
+      </div>
+    `;
   }
 
   function getOptionColor(index) {
@@ -401,6 +449,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return colors[index % colors.length];
   }
 
+  // ======================
+  // IMAGE UPLOAD
+  // ======================
   function handleFileUpload() {
     const file = dom.fileInput.files[0];
     if (!file) return;
@@ -424,15 +475,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================
   function setupEventListeners() {
     dom.newSlideBtn?.addEventListener('click', () => createNewSlide());
-    
-    dom.questionType?.addEventListener('change', function() {
+
+    dom.questionType?.addEventListener('change', function () {
       if (currentSlide) {
         currentSlide.type = this.value;
         if (this.value === 'multiple') {
           currentSlide.options = ["Option 1", "Option 2", "Option 3", "Option 4"];
-          currentSlide.correctAnswer = 0;
-        } else if (this.value === 'truefalse') {
-          currentSlide.options = ["True", "False"];
           currentSlide.correctAnswer = 0;
         } else {
           currentSlide.options = [""];
@@ -442,13 +490,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    dom.questionText?.addEventListener('input', function() {
+    dom.questionText?.addEventListener('input', function () {
       if (currentSlide) {
         currentSlide.question = this.textContent;
       }
     });
 
-    // Image upload handlers
+    // Image upload
     dom.openModalBtn?.addEventListener('click', () => dom.imageModal.classList.remove('hidden'));
     dom.closeModalBtn?.addEventListener('click', () => dom.imageModal.classList.add('hidden'));
     dom.fileInput?.addEventListener('change', handleFileUpload);
@@ -460,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
       handleFileUpload();
     });
 
-    // Collaboration modal handlers
+    // Collaboration modals
     dom.openShareBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       dom.shareModal.classList.toggle('hidden');

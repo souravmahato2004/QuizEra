@@ -42,7 +42,6 @@
         outline: none;
         border-bottom: 1px dashed #A435F0;
     }
-    
     </style>
 </head>
 
@@ -184,8 +183,9 @@
         </div>
 
         <!-- Sidebar Controls -->
-        <div class="w-[300px] ml-8 bg-white p-5 rounded-xl shadow-md relative font-sans text-sm">
-            <button class="absolute top-3 right-3 text-2xl text-gray-500">&times;</button>
+        <div
+            class="w-[300px] h-[500px] ml-8 bg-white p-5 rounded-xl shadow-md relative font-sans text-sm overflow-y-auto">
+            <!-- <button class="absolute top-3 right-3 text-2xl text-gray-500">&times;</button> -->
 
             <h2 class="text-lg font-semibold mb-4">Slide</h2>
 
@@ -194,9 +194,12 @@
                 class="w-full bg-gray-100 p-2 rounded-md mb-4 text-sm text-gray-800 focus:outline-none">
                 <option value="multiple">Multiple Choice</option>
                 <option value="fillblank">Fill in the blank</option>
-                <option value="truefalse">True/False</option>
                 <option value="shortanswer">Short Answer</option>
             </select>
+
+            <div id="optionsContainer" class="mt-4">
+                <!-- Options editing will appear here for multiple choice -->
+            </div>
 
             <label class="text-xs font-medium text-gray-700 block mb-1">Image</label>
             <p class="text-xs text-gray-400 mb-2">We support .jpg, .png, .jpeg and .png</p>
@@ -276,7 +279,7 @@
     </div>
 
     <!-- modal for uploading image. -->
-    <div id="openModal" class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center z-50">
+    <div id="openModal" class="fixed inset-0 bg-black bg-opacity-40 flex hidden justify-center items-center z-50">
         <div class="bg-white rounded-2xl p-6 w-[600px] h-auto">
             <h2 class="text-xl font-semibold mb-4 text-center text-purple-700">Upload Image</h2>
             <div id="drop-area"
