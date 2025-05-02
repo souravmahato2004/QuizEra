@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
+<?php include '../backend//quizBackend.php';?>
 <head>
     <meta charset="UTF-8">
     <title>Quiz Question</title>
@@ -73,10 +73,10 @@
     <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
         <div class="flex items-center gap-2">
             <!-- Back Button -->
-            <button onclick="history.back()" class=" top-10 left-10 text-black z-20">
+            <button onclick="window.location.href='mainPage.php'" class=" top-10 left-10 text-black z-20">
                 <i class="ri-arrow-left-long-line"></i>
             </button>
-            <span class="text-lg font-small">NameOfQuiz</span>
+            <span class="text-lg font-small"> <?php echo($_GET['quiz']);?></span>
         </div>
 
         <div class="flex gap-4">
