@@ -7,7 +7,7 @@
         header("Location: ../frontend/signup.php");
         exit();
     }
-
+    
     // Process form data
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['newQuiz']) && $_POST['newQuiz']==='createNewQuiz')) {
         // Validate and sanitize inputs
