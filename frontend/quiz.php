@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<?php include '../backend//quizBackend.php';?>
+<?php include '../backend/quizBackend.php';?>
 <head>
     <meta charset="UTF-8">
     <title>Quiz Question</title>
@@ -76,7 +76,7 @@
             <button onclick="window.location.href='mainPage.php'" class=" top-10 left-10 text-black z-20">
                 <i class="ri-arrow-left-long-line"></i>
             </button>
-            <span class="text-lg font-small"> <?php echo($_GET['quiz']);?></span>
+            <span class="text-lg font-small"> <?php echo htmlspecialchars($title);?></span>
         </div>
 
         <div class="flex gap-4">
@@ -96,6 +96,8 @@
                 <!-- Share Button (opens share modal) -->
                 <button id="openShareModal"
                     class="bg-gray-200 px-4 py-1 rounded-full text-lg hover:bg-[#CFCFCF]">Share</button>
+                <button type="submit" id="saveBtn"
+                    class="bg-gray-200 px-4 py-1 rounded-full text-lg hover:bg-[#CFCFCF]">Save</button>
                 <button
                     class="bg-[#A435F0] text-white px-4 py-1 rounded-full text-lg hover:bg-purple-700">Present</button>
                 <!-- Share Modal (invite user) -->
@@ -185,8 +187,6 @@
         <!-- Sidebar Controls -->
         <div
             class="w-[300px] h-[500px] ml-8 bg-white p-5 rounded-xl shadow-md relative font-sans text-sm overflow-y-auto">
-            <!-- <button class="absolute top-3 right-3 text-2xl text-gray-500">&times;</button> -->
-
             <h2 class="text-lg font-semibold mb-4">Slide</h2>
 
             <label class="text-xs font-medium text-gray-700 mb-1 block">Question Type</label>

@@ -244,9 +244,9 @@
             <?php if (empty($quizzes)): ?>
             <div class="bg-white rounded-lg shadow p-8 text-center">
                 <p class="text-gray-600 mb-4">You don't have any quizzes yet.</p>
-                <a href="#" class="text-purple-600 hover:text-purple-800 font-medium">
+                <button onclick="openModal()" class="text-purple-600 hover:text-purple-800 font-medium">
                     Create your first quiz →
-                </a>
+            </button>
             </div>
             <?php else: ?>
             <div class="grid grid-cols-3 gap-4">
