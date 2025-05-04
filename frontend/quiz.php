@@ -169,7 +169,8 @@
                 here...</h1>
 
             <div id="contentArea">
-                <!-- Content will change based on question type -->
+                <!-- Content will change based on question type -->.
+                 
                 <h2 class="text-xl font-small text-black mt-12 mb-2">Options</h2>
                 <div class="grid grid-cols-2 gap-6 pt-4">
                     <button
