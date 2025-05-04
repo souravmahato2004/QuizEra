@@ -12,4 +12,11 @@
     if(!$conn){
         die("Sorry we failed to connect".mysqli_connect_error());
     }
+    if ($conn->connect_error) {
+        // Don't output HTML here - we need clean JSON responses
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database connection failed']);
+        exit;
+    }
+    $conn->set_charset("utf8mb4");
 ?>

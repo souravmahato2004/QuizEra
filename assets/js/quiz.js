@@ -83,41 +83,60 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         body: `action=load_quiz&quiz_id=${quizId}`
       });
-
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
       const data = await response.json();
       
+      console.log('Received quiz data:', data); // Debug log
+      
       if (data.status === 'success') {
-        // Update UI with loaded quiz
+        // Validate received data
+        if (!data.quiz || !data.slides) {
+          throw new Error('Invalid quiz data structure received');
+        }
+  
+        // Clear existing slides
         dom.slidesContainer.innerHTML = '';
         slides = [];
         
         // Process slides from server
-        data.slides.forEach((slide, index) => {
-          const slideData = {
-            id: slide.slide_id,
-            question: slide.question,
-            type: slide.question_type,
-            options: slide.options || [],
-            correctAnswer: slide.correctAnswer || 0,
-            image: slide.image_url || null
-          };
-          
-          slides.push(slideData);
-          renderSlideThumbnail(slideData, index);
-        });
-
-        if (slides.length > 0) {
-          selectSlide(slides[0].id);
+        if (Array.isArray(data.slides)) {
+          data.slides.forEach((slide, index) => {
+            const slideData = {
+              id: slide.slide_id,
+              question: slide.question || 'Untitled question',
+              type: slide.question_type || 'multiple',
+              options: slide.options || [],
+              correctAnswer: slide.correctAnswer || 0,
+              image: slide.image_url || null
+            };
+            
+            slides.push(slideData);
+            renderSlideThumbnail(slideData, index);
+          });
+  
+          if (slides.length > 0) {
+            selectSlide(slides[0].id);
+          } else {
+            createNewSlide();
+          }
         } else {
-          createNewSlide();
+          createNewSlide(); // Create default slide if no slides received
         }
       } else {
-        console.error('Error loading quiz:', data.message);
-        alert('Failed to load quiz: ' + data.message);
+        throw new Error(data.message || 'Failed to load quiz');
       }
     } catch (error) {
       console.error('Error loading quiz:', error);
-      alert('An error occurred while loading the quiz');
+      showErrorMessage(`Failed to load quiz: ${error.message}`);
+      
+      // Fallback: Create a new empty quiz
+      dom.slidesContainer.innerHTML = '';
+      slides = [];
+      createNewSlide();
     }
   }
 
