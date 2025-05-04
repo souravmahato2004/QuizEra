@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let slides = [];
   let draggedSlide = null;
   let dragStartIndex = -1;
+  let quizId = null;
+  let isNewQuiz = false;
 
   // ======================
   // DOM ELEMENTS
@@ -31,23 +33,193 @@ document.addEventListener("DOMContentLoaded", () => {
     dropArea: document.getElementById("dropArea"),
     fileInput: document.getElementById("fileElem"),
     preview: document.getElementById("preview"),
-    optionsContainer: document.getElementById("optionsContainer")
+    optionsContainer: document.getElementById("optionsContainer"),
+    saveBtn: document.getElementById("saveBtn"),
+    shareEmail: document.getElementById("shareEmail"),
+    permissionSelect: document.getElementById("permissionSelect"),
+    confirmShare: document.getElementById("confirmShare")
   };
 
   // ======================
   // INITIALIZATION
   // ======================
-  function initialize() {
+  async function initialize() {
     if (!dom.slidesContainer || !dom.newSlideBtn) {
       console.error("Critical elements missing!");
       return;
     }
 
-    dom.slidesContainer.innerHTML = '';
-    slides = [];
-    createNewSlide();
+    // Get quiz ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const quizParam = urlParams.get('quiz');
+    
+    if (quizParam && !isNaN(quizParam)) {
+      // Existing quiz - load from server
+      quizId = parseInt(quizParam);
+      isNewQuiz = false;
+      await loadQuizFromServer();
+    } else {
+      // New quiz - create default
+      quizId = null;
+      isNewQuiz = true;
+      dom.slidesContainer.innerHTML = '';
+      slides = [];
+      createNewSlide();
+    }
+
     setupEventListeners();
     console.log("Quiz editor initialized successfully");
+  }
+
+  // ======================
+  // BACKEND INTEGRATION
+  // ======================
+  async function loadQuizFromServer() {
+    try {
+      const response = await fetch('../backend/quizBackend.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `action=load_quiz&quiz_id=${quizId}`
+      });
+
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        // Update UI with loaded quiz
+        dom.slidesContainer.innerHTML = '';
+        slides = [];
+        
+        // Process slides from server
+        data.slides.forEach((slide, index) => {
+          const slideData = {
+            id: slide.slide_id,
+            question: slide.question,
+            type: slide.question_type,
+            options: slide.options || [],
+            correctAnswer: slide.correctAnswer || 0,
+            image: slide.image_url || null
+          };
+          
+          slides.push(slideData);
+          renderSlideThumbnail(slideData, index);
+        });
+
+        if (slides.length > 0) {
+          selectSlide(slides[0].id);
+        } else {
+          createNewSlide();
+        }
+      } else {
+        console.error('Error loading quiz:', data.message);
+        alert('Failed to load quiz: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error loading quiz:', error);
+      alert('An error occurred while loading the quiz');
+    }
+  }
+
+  async function saveQuiz() {
+    try {
+      // If this is a new quiz, create it first
+      if (isNewQuiz) {
+        const title = document.title || 'Untitled Quiz';
+        const response = await fetch('../backend/quizBackend.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `action=create_quiz&title=${encodeURIComponent(title)}`
+        });
+
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+          quizId = data.quiz_id;
+          isNewQuiz = false;
+          // Update URL to include the new quiz ID
+          window.history.replaceState(null, '', `?quiz=${quizId}`);
+        } else {
+          throw new Error(data.message || 'Failed to create quiz');
+        }
+      }
+
+      // Save slides
+      const saveResponse = await fetch('../backend/quizBackend.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `action=save_slides&quiz_id=${quizId}&slides=${encodeURIComponent(JSON.stringify(slides))}`
+      });
+
+      const saveData = await saveResponse.json();
+      
+      if (saveData.status === 'success') {
+        showSuccessMessage('Quiz saved successfully!');
+      } else {
+        throw new Error(saveData.message || 'Failed to save slides');
+      }
+    } catch (error) {
+      console.error('Error saving quiz:', error);
+      showErrorMessage('Failed to save quiz: ' + error.message);
+    }
+  }
+
+  async function addCollaborator(email, permission) {
+    try {
+      if (!quizId) {
+        throw new Error('Quiz must be saved before adding collaborators');
+      }
+
+      const response = await fetch('../backend/quizBackend.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `action=add_collaborator&quiz_id=${quizId}&email=${encodeURIComponent(email)}&permission=${permission}`
+      });
+
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        showSuccessMessage('Collaborator added successfully!');
+        dom.shareModal.classList.add('hidden');
+        dom.shareEmail.value = '';
+      } else {
+        throw new Error(data.message || 'Failed to add collaborator');
+      }
+    } catch (error) {
+      console.error('Error adding collaborator:', error);
+      showErrorMessage('Failed to add collaborator: ' + error.message);
+    }
+  }
+
+  // ======================
+  // UI HELPERS
+  // ======================
+  function showSuccessMessage(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  }
+
+  function showErrorMessage(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
   }
 
   // ======================
@@ -56,35 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function createNewSlide(position = -1) {
     try {
       const slideId = Date.now();
-      const slideHTML = `
-        <div class="flex items-center gap-3 mb-4 slide" data-id="${slideId}" draggable="true">
-          <span class="w-4 text-sm text-gray-700 text-right">${slides.length + 1}</span>
-          <div class="relative flex w-[170px] h-[94px] bg-white items-center justify-center rounded-lg border border-[#D0D0D0]">
-            <i class="ri-gallery-view-2"></i>
-            <div class="absolute bottom-2 right-2">
-              <button class="dropdown-toggle">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 12a2 2 0 114 0 2 2 0 01-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0z"/>
-                </svg>
-              </button>
-              <div class="hidden absolute right-0 bottom-8 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20 dropdown-menu">
-                <ul class="py-1 text-sm text-gray-700">
-                  <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-slide-btn">✏️ Edit</button></li>
-                  <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100 duplicate-slide-btn">📄 Duplicate</button></li>
-                  <li><button class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 delete-slide-btn">🗑️ Delete</button></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      if (position >= 0 && position < dom.slidesContainer.children.length) {
-        dom.slidesContainer.children[position].insertAdjacentHTML('afterend', slideHTML);
-      } else {
-        dom.slidesContainer.insertAdjacentHTML('beforeend', slideHTML);
-      }
-
+      
       const slideData = {
         id: slideId,
         question: "Type your question here...",
@@ -100,10 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
         slides.push(slideData);
       }
 
-      const newSlide = dom.slidesContainer.querySelector(`[data-id="${slideId}"]`);
-      setupSlideEventListeners(newSlide, slideId);
-      addDragHandlers(newSlide);
-      renumberSlides();
+      renderSlideThumbnail(slideData, position >= 0 ? position : slides.length - 1);
       selectSlide(slideId);
 
       return slideId;
@@ -111,6 +252,44 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error creating slide:", error);
       return null;
     }
+  }
+
+  function renderSlideThumbnail(slideData, position) {
+    const slideHTML = `
+      <div class="flex items-center gap-3 mb-4 slide" data-id="${slideData.id}" draggable="true">
+        <span class="w-4 text-sm text-gray-700 text-right">${position + 1}</span>
+        <div class="relative flex w-[170px] h-[94px] bg-white items-center justify-center rounded-lg border border-[#D0D0D0]">
+          ${slideData.image ? 
+            `<img src="${slideData.image}" class="w-full h-full object-cover rounded-lg" />` : 
+            `<i class="ri-gallery-view-2"></i>`}
+          <div class="absolute bottom-2 right-2">
+            <button class="dropdown-toggle">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 12a2 2 0 114 0 2 2 0 01-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0z"/>
+              </svg>
+            </button>
+            <div class="hidden absolute right-0 bottom-8 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20 dropdown-menu">
+              <ul class="py-1 text-sm text-gray-700">
+                <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-slide-btn">✏️ Edit</button></li>
+                <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100 duplicate-slide-btn">📄 Duplicate</button></li>
+                <li><button class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 delete-slide-btn">🗑️ Delete</button></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (position >= 0 && position < dom.slidesContainer.children.length) {
+      dom.slidesContainer.children[position].insertAdjacentHTML('afterend', slideHTML);
+    } else {
+      dom.slidesContainer.insertAdjacentHTML('beforeend', slideHTML);
+    }
+
+    const newSlide = dom.slidesContainer.querySelector(`[data-id="${slideData.id}"]`);
+    setupSlideEventListeners(newSlide, slideData.id);
+    addDragHandlers(newSlide);
+    renumberSlides();
   }
 
   // ======================
@@ -462,6 +641,29 @@ document.addEventListener("DOMContentLoaded", () => {
         dom.preview.innerHTML = `<img src="${reader.result}" class="rounded-lg max-h-52 mx-auto" />`;
         if (currentSlide) {
           currentSlide.image = reader.result;
+          // Update thumbnail preview
+          const slideElement = document.querySelector(`.slide[data-id="${currentSlide.id}"]`);
+          if (slideElement) {
+            const imgContainer = slideElement.querySelector('.relative');
+            imgContainer.innerHTML = `
+              <img src="${reader.result}" class="w-full h-full object-cover rounded-lg" />
+              <div class="absolute bottom-2 right-2">
+                <button class="dropdown-toggle">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 12a2 2 0 114 0 2 2 0 01-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0zm4 0a2 2 0 104 0 2 2 0 00-4 0z"/>
+                  </svg>
+                </button>
+                <div class="hidden absolute right-0 bottom-8 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20 dropdown-menu">
+                  <ul class="py-1 text-sm text-gray-700">
+                    <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-slide-btn">✏️ Edit</button></li>
+                    <li><button class="w-full text-left px-4 py-2 hover:bg-gray-100 duplicate-slide-btn">📄 Duplicate</button></li>
+                    <li><button class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 delete-slide-btn">🗑️ Delete</button></li>
+                  </ul>
+                </div>
+              </div>
+            `;
+            setupSlideEventListeners(slideElement, currentSlide.id);
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -508,6 +710,9 @@ document.addEventListener("DOMContentLoaded", () => {
       handleFileUpload();
     });
 
+    // Save button
+    dom.saveBtn?.addEventListener('click', () => saveQuiz());
+
     // Collaboration modals
     dom.openShareBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -526,6 +731,19 @@ document.addEventListener("DOMContentLoaded", () => {
         dom.shareModal.classList.add('hidden');
         dom.collaboratorsModal.classList.add('hidden');
       }
+    });
+
+    // Share collaborator
+    dom.confirmShare?.addEventListener('click', () => {
+      const email = dom.shareEmail.value.trim();
+      const permission = dom.permissionSelect.value;
+      
+      if (!email) {
+        showErrorMessage('Please enter an email address');
+        return;
+      }
+      
+      addCollaborator(email, permission);
     });
   }
 
