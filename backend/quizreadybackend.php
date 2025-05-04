@@ -1,23 +1,44 @@
 <?php
 session_start();
-
 include '../backend/db.php';
 
 // Get quiz title from GET parameter or session
-$title = isset($_GET['quiz_id']) ? getQuizTitle($_GET['quiz_id'], $conn) : 'Untitled Quiz';
+$title = isset($_GET['id']) ? getQuizTitle($_GET['id'], $conn) : 'Untitled Quiz';
 
-// Function to generate a unique 6-digit quiz code
-function generateQuizCode() {
+// Function to generate and store a unique 6-digit quiz code
+function generateAndStoreQuizCode($quiz_id, $conn) {
     $code = mt_rand(100000, 999999);
+    $host_id = $_SESSION['id'];
     
-    // In a real application, you would check if this code exists in the database
-    // and generate a new one if it does
-    return $code;
+    // Keep generating until we get a unique code
+    $attempts = 0;
+    while ($attempts < 10) {
+        $stmt = $conn->prepare("SELECT id FROM quiz_sessions WHERE code = ?");
+        $stmt->bind_param("s", $code);
+        $stmt->execute();
+        
+        if ($stmt->get_result()->num_rows === 0) {
+            // Code is unique, insert it
+            $stmt = $conn->prepare("INSERT INTO quiz_sessions (quiz_id, host_id, code, created_at) VALUES (?, ?, ?, NOW())");
+            $stmt->bind_param("iis", $quiz_id, $host_id, $code);
+            
+            if ($stmt->execute()) {
+                return $code;
+            }
+            break;
+        }
+        
+        // Code exists, generate a new one
+        $code = mt_rand(100000, 999999);
+        $attempts++;
+    }
+    
+    return false;
 }
 
 // Function to get quiz title by ID
 function getQuizTitle($quiz_id, $conn) {
-    $stmt = $conn->prepare("SELECT title FROM quizzes WHERE id = ?");
+    $stmt = $conn->prepare("SELECT title FROM quizzes WHERE quiz_id = ?");
     $stmt->bind_param("i", $quiz_id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -29,27 +50,69 @@ function getQuizTitle($quiz_id, $conn) {
     return 'Untitled Quiz';
 }
 
-// Function to create a new quiz session for hosting
-function createQuizSession($quiz_id, $conn) {
-    $code = generateQuizCode();
-    $host_id = $_SESSION['user_id']; // Assuming user is logged in
+// Function to start a quiz session with timer
+function startQuizSessionWithTimer($session_code, $duration_minutes, $conn) {
+    $end_time = date('Y-m-d H:i:s', strtotime("+$duration_minutes minutes"));
     
-    $stmt = $conn->prepare("INSERT INTO quiz_sessions (quiz_id, host_id, code, created_at) VALUES (?, ?, ?, NOW())");
-    $stmt->bind_param("iis", $quiz_id, $host_id, $code);
+    $stmt = $conn->prepare("UPDATE quiz_sessions 
+                           SET status = 'active', 
+                               started_at = NOW(), 
+                               end_at = ?,
+                               timer_duration = ?
+                           WHERE code = ?");
+    $stmt->bind_param("sis", $duration_minutes, $end_time, $session_code);
     
-    if ($stmt->execute()) {
-        return $code;
+    return $stmt->execute();
+}
+
+// Function to add a participant to a quiz session
+function addParticipant($session_code, $user_id, $conn) {
+    // First get the session ID
+    $stmt = $conn->prepare("SELECT id FROM quiz_sessions WHERE code = ?");
+    $stmt->bind_param("s", $session_code);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        return false; // Session doesn't exist
     }
-    return false;
+    
+    $session = $result->fetch_assoc();
+    $session_id = $session['id'];
+    
+    // Check if user is already a participant
+    $stmt = $conn->prepare("SELECT id FROM quiz_participants WHERE session_id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $session_id, $user_id);
+    $stmt->execute();
+    
+    if ($stmt->get_result()->num_rows > 0) {
+        return true; // Already a participant
+    }
+    
+    // Add participant
+    $stmt = $conn->prepare("INSERT INTO quiz_participants (session_id, user_id, joined_at) VALUES (?, ?, NOW())");
+    $stmt->bind_param("ii", $session_id, $user_id);
+    
+    return $stmt->execute();
+}
+
+// Function to end a quiz session
+function endQuizSession($session_code, $conn) {
+    // Update session status
+    $stmt = $conn->prepare("UPDATE quiz_sessions SET status = 'completed', end_at = NOW() WHERE code = ?");
+    $stmt->bind_param("s", $session_code);
+    
+    return $stmt->execute();
 }
 
 // Function to get active participants for a quiz session
 function getParticipants($session_code, $conn) {
     $stmt = $conn->prepare("
-        SELECT u.id, u.username, u.email 
-        FROM participants p
-        JOIN users u ON p.user_id = u.id
-        WHERE p.session_code = ?
+        SELECT u.user_id, u.username, u.user_email, u.user_pic
+        FROM quiz_participants p
+        JOIN user_info u ON p.user_id = u.user_id
+        JOIN quiz_sessions s ON p.session_id = s.id
+        WHERE s.code = ? AND s.status != 'completed'
     ");
     $stmt->bind_param("s", $session_code);
     $stmt->execute();
@@ -62,31 +125,15 @@ function getParticipants($session_code, $conn) {
     return $participants;
 }
 
-// Function to save quiz settings
-function saveQuizSettings($quiz_id, $settings, $conn) {
-    $settings_json = json_encode($settings);
-    
-    $stmt = $conn->prepare("UPDATE quizzes SET settings = ? WHERE id = ?");
-    $stmt->bind_param("si", $settings_json, $quiz_id);
-    
-    return $stmt->execute();
-}
-
-// Function to start a quiz session
-function startQuizSession($session_code, $conn) {
-    $stmt = $conn->prepare("UPDATE quiz_sessions SET status = 'active', started_at = NOW() WHERE code = ?");
-    $stmt->bind_param("s", $session_code);
-    
-    return $stmt->execute();
-}
-
-// Handle form submissions for the hosting page
+// Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+    
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'create_session':
                 if (isset($_POST['quiz_id'])) {
-                    $code = createQuizSession($_POST['quiz_id'], $conn);
+                    $code = generateAndStoreQuizCode($_POST['quiz_id'], $conn);
                     if ($code) {
                         echo json_encode(['status' => 'success', 'code' => $code]);
                     } else {
@@ -102,24 +149,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
                 
-            case 'save_settings':
-                if (isset($_POST['quiz_id']) && isset($_POST['settings'])) {
-                    $success = saveQuizSettings($_POST['quiz_id'], $_POST['settings'], $conn);
+            case 'start_quiz':
+                if (isset($_POST['session_code']) && isset($_POST['duration'])) {
+                    $success = startQuizSessionWithTimer($_POST['session_code'], $_POST['duration'], $conn);
                     echo json_encode(['status' => $success ? 'success' : 'error']);
                 }
                 break;
                 
-            case 'start_quiz':
+            case 'end_quiz':
                 if (isset($_POST['session_code'])) {
-                    $success = startQuizSession($_POST['session_code'], $conn);
+                    $success = endQuizSession($_POST['session_code'], $conn);
                     echo json_encode(['status' => $success ? 'success' : 'error']);
                 }
                 break;
+                
+            case 'join_quiz':
+                if (isset($_POST['session_code']) && isset($_SESSION['user_id'])) {
+                    $success = addParticipant($_POST['session_code'], $_SESSION['user_id'], $conn);
+                    echo json_encode(['status' => $success ? 'success' : 'error']);
+                }
+                break;
+                
+            default:
+                echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
         }
+        exit;
     }
-    exit;
 }
 
-// Close connection (not always needed as PHP will close it automatically)
-// $conn->close();
+// For initial page load
+function getCurrentQuizSession($quiz_id, $conn) {
+    $host_id = $_SESSION['id'];
+    $stmt = $conn->prepare("SELECT code FROM quiz_sessions WHERE quiz_id = ? AND host_id = ? AND status = 'waiting' ORDER BY created_at DESC LIMIT 1");
+    $stmt->bind_param("ii", $quiz_id, $host_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['code'];
+    }
+    return generateAndStoreQuizCode($quiz_id, $conn);
+}
 ?>

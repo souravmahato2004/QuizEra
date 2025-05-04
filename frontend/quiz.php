@@ -98,8 +98,7 @@
                     class="bg-gray-200 px-4 py-1 rounded-full text-lg hover:bg-[#CFCFCF]">Share</button>
                 <button type="submit" id="saveBtn"
                     class="bg-gray-200 px-4 py-1 rounded-full text-lg hover:bg-[#CFCFCF]">Save</button>
-                <button
-                    class="bg-[#A435F0] text-white px-4 py-1 rounded-full text-lg hover:bg-purple-700">Present</button>
+                <button onclick="window.location.href='../frontend/quizready.php?id=<?php echo $quiz_id; ?>'" class="bg-[#A435F0] text-white px-4 py-1 rounded-full text-lg hover:bg-purple-700">Present</button>
                 <!-- Share Modal (invite user) -->
                 <div id="shareModal"
                     class="absolute top-14 right-0 mt-2 w-80 bg-white shadow-lg border border-gray-200 rounded-xl p-4 z-50 hidden">

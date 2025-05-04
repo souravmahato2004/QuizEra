@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-    <?php include'../backend/quizreadybackend.php';?>
 <head>
     <meta charset="UTF-8">
     <title>Host Quiz</title>
@@ -43,12 +42,38 @@
         font-size: 2.5rem;
         text-shadow: 0 0 10px rgba(164, 53, 240, 0.3);
     }
+
+    .timer-display {
+        font-size: 2rem;
+        font-family: monospace;
+    }
+
+    .timer-running {
+        color: #A435F0;
+    }
+
+    .timer-warning {
+        color: #F59E0B;
+    }
+
+    .timer-danger {
+        color: #EF4444;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
     </style>
 </head>
 
+<?php include '../backend/quizreadybackend.php' ?>
+
 <body class="bg-[#E5E5E5] min-h-screen flex flex-col font-outfit">
 
-    <!-- Header (same as original) -->
+    <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
         <div class="flex items-center gap-2">
             <button onclick="window.location.href='mainPage.php'" class=" top-10 left-10 text-black z-20">
@@ -58,6 +83,9 @@
         </div>
 
         <div class="flex items-center gap-3">
+            <div id="quizTimer" class="timer-display hidden bg-[#EFDAFE] px-4 py-1 rounded-lg">
+                <span id="minutes">00</span>:<span id="seconds">00</span>
+            </div>
             <div class="relative inline-flex items-center gap-2">
                 <div class="relative">
                     <img id="profileImage" src="../assets/profilepic/demo.jpg" alt="Profile"
@@ -79,7 +107,7 @@
                 <h2 class="text-lg font-medium mb-2">Share this code with participants:</h2>
                 <div class="flex items-center">
                     <div id="quizCode" class="code-display bg-[#EFDAFE] px-6 py-3 rounded-lg text-[#A435F0] font-bold">
-                        <?php echo generateQuizCode(); ?>
+                        <?php echo getCurrentQuizSession($_GET['id'], $conn); ?>
                     </div>
                     <button id="copyCodeBtn" class="ml-4 bg-[#A435F0] text-white px-4 py-2 rounded-lg hover:bg-purple-700">
                         <i class="ri-file-copy-line mr-2"></i>Copy
@@ -101,7 +129,7 @@
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-sm text-gray-600 mb-1">Total Quiz Time (minutes)</label>
-                                <input type="number" min="1" max="120" value="15" 
+                                <input type="number" id="quizDuration" min="1" max="120" value="15" 
                                     class="w-full border border-gray-300 rounded-md px-3 py-2">
                             </div>
                         </div>
@@ -112,13 +140,21 @@
             <!-- Host Controls -->
             <div class="flex justify-between items-center pt-4 border-t border-gray-200">
                 <div class="flex space-x-3">
-                    <button class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">
+                    <button id="shareLinkBtn" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">
                         <i class="ri-share-line mr-2"></i>Share Link
                     </button>
                 </div>
-                <button id="startQuizBtn" class="bg-[#A435F0] text-white px-6 py-2 rounded-lg hover:bg-purple-700 text-lg">
-                    <i class="ri-play-line mr-2"></i>Start Quiz
-                </button>
+                <div class="flex space-x-3" id="quizControls">
+                    <button id="pauseQuizBtn" class="hidden bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600">
+                        <i class="ri-pause-line mr-2"></i>Pause
+                    </button>
+                    <button id="endQuizBtn" class="hidden bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                        <i class="ri-stop-line mr-2"></i>End
+                    </button>
+                    <button id="startQuizBtn" class="bg-[#A435F0] text-white px-6 py-2 rounded-lg hover:bg-purple-700 text-lg">
+                        <i class="ri-play-line mr-2"></i>Start Quiz
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -149,15 +185,54 @@
         </div>
     </div>
 
+    <!-- Quiz Ended Modal -->
+    <div id="quizEndedModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full text-center">
+            <div class="text-6xl mb-4 text-[#A435F0]">
+                <i class="ri-flag-2-fill"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Quiz Ended</h2>
+            <p class="text-gray-600 mb-6">The quiz has been completed. You can now view the results.</p>
+            <button id="viewResultsBtn" class="bg-[#A435F0] text-white px-6 py-2 rounded-lg hover:bg-purple-700">
+                View Results
+            </button>
+        </div>
+    </div>
+
     <script>
-        // Generate a 6-digit random code
-        function generateQuizCode() {
-            return Math.floor(100000 + Math.random() * 900000);
-        }
-        
-        // Display the generated code
-        document.getElementById('quizCode').textContent = generateQuizCode();
-        
+        // Quiz state variables
+        let quizDuration = 15; // in minutes
+        let timeLeft = 0; // in seconds
+        let timerInterval = null;
+        let isQuizRunning = false;
+        let isQuizPaused = false;
+        let participantCount = 0;
+        const quizCode = document.getElementById('quizCode').textContent;
+
+        // DOM elements
+        const quizTimer = document.getElementById('quizTimer');
+        const minutesDisplay = document.getElementById('minutes');
+        const secondsDisplay = document.getElementById('seconds');
+        const quizDurationInput = document.getElementById('quizDuration');
+        const startQuizBtn = document.getElementById('startQuizBtn');
+        const pauseQuizBtn = document.getElementById('pauseQuizBtn');
+        const endQuizBtn = document.getElementById('endQuizBtn');
+        const quizControls = document.getElementById('quizControls');
+        const quizEndedModal = document.getElementById('quizEndedModal');
+        const viewResultsBtn = document.getElementById('viewResultsBtn');
+        const shareLinkBtn = document.getElementById('shareLinkBtn');
+        const refreshParticipantsBtn = document.getElementById('refreshParticipants');
+        const participantList = document.getElementById('participantList');
+        const participantCountDisplay = document.getElementById('participantCount');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshParticipants();
+            
+            // Set up periodic participant refresh
+            setInterval(refreshParticipants, 5000);
+        });
+
         // Copy code functionality
         document.getElementById('copyCodeBtn').addEventListener('click', function() {
             const code = document.getElementById('quizCode').textContent;
@@ -169,19 +244,60 @@
                 }, 2000);
             });
         });
-        
-        // Simulate participants joining (for demo)
-        const participantNames = ['Alex Johnson', 'Sam Wilson', 'Taylor Swift', 'Jamie Smith', 'Casey Brown'];
-        let participantCount = 0;
-        
-        document.getElementById('refreshParticipants').addEventListener('click', function() {
-            const participantList = document.getElementById('participantList');
-            participantList.innerHTML = '';
+
+        // Share link functionality
+        shareLinkBtn.addEventListener('click', function() {
+            const code = document.getElementById('quizCode').textContent;
+            const shareUrl = `${window.location.origin}/join/${code}`;
             
-            // Add random participants for demo
-            const randomCount = Math.floor(Math.random() * 5) + 1;
-            participantCount = randomCount;
-            document.getElementById('participantCount').textContent = participantCount;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Join my quiz!',
+                    text: `Use this code to join my quiz: ${code}`,
+                    url: shareUrl
+                }).catch(err => {
+                    console.log('Error sharing:', err);
+                    copyToClipboard(shareUrl);
+                });
+            } else {
+                copyToClipboard(shareUrl);
+            }
+            
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Link copied to clipboard!');
+                });
+            }
+        });
+        
+        // Refresh participants list
+        async function refreshParticipants() {
+            try {
+                const response = await fetch('../backend/quizreadybackend.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=get_participants&session_code=${quizCode}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateParticipantList(data.participants);
+                } else {
+                    console.error('Failed to fetch participants:', data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching participants:', error);
+            }
+        }
+        
+        // Update participant list in UI
+        function updateParticipantList(participants) {
+            participantList.innerHTML = '';
+            participantCount = participants.length;
+            participantCountDisplay.textContent = participantCount;
             
             if (participantCount === 0) {
                 participantList.innerHTML = `
@@ -191,32 +307,174 @@
                     </div>
                 `;
             } else {
-                for (let i = 0; i < participantCount; i++) {
-                    const participant = document.createElement('div');
-                    participant.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                    participant.innerHTML = `
+                participants.forEach(participant => {
+                    const participantElement = document.createElement('div');
+                    participantElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                    participantElement.innerHTML = `
                         <div class="flex items-center">
-                            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                                <i class="ri-user-3-line text-[#A435F0]"></i>
-                            </div>
-                            <span>${participantNames[i]}</span>
+                            <img src="${participant.profile_pic || '../assets/profilepic/default.jpg'}" 
+                                 alt="${participant.username}" 
+                                 class="w-8 h-8 rounded-full object-cover mr-3">
+                            <span>${participant.username}</span>
                         </div>
                         <span class="text-xs text-gray-500">Joined</span>
                     `;
-                    participantList.appendChild(participant);
-                }
+                    participantList.appendChild(participantElement);
+                });
             }
-        });
+        }
         
         // Start quiz button
-        document.getElementById('startQuizBtn').addEventListener('click', function() {
+        startQuizBtn.addEventListener('click', async function() {
             if (participantCount === 0) {
                 alert('No participants have joined yet!');
                 return;
             }
-            alert('Quiz is starting!');
-            // In a real app, this would redirect to the quiz presentation page
+            
+            quizDuration = parseInt(quizDurationInput.value) || 15;
+            timeLeft = quizDuration * 60; // Convert to seconds
+            
+            // Send request to server to start quiz with timer
+            try {
+                const response = await fetch('../backend/quizreadybackend.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=start_quiz&session_code=${quizCode}&duration=${quizDuration}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    isQuizRunning = true;
+                    updateTimerDisplay();
+                    quizTimer.classList.remove('hidden');
+                    quizTimer.classList.add('timer-running');
+                    
+                    // Show pause and end buttons
+                    startQuizBtn.classList.add('hidden');
+                    pauseQuizBtn.classList.remove('hidden');
+                    endQuizBtn.classList.remove('hidden');
+                    
+                    // Start the timer
+                    timerInterval = setInterval(updateTimer, 1000);
+                } else {
+                    alert('Failed to start quiz: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error starting quiz:', error);
+                alert('Failed to start quiz');
+            }
         });
+
+        // Pause quiz button
+        pauseQuizBtn.addEventListener('click', function() {
+            if (isQuizPaused) {
+                resumeQuiz();
+            } else {
+                pauseQuiz();
+            }
+        });
+
+        // End quiz button
+        endQuizBtn.addEventListener('click', async function() {
+            clearInterval(timerInterval);
+            
+            try {
+                const response = await fetch('../backend/quizreadybackend.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=end_quiz&session_code=${quizCode}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    isQuizRunning = false;
+                    isQuizPaused = false;
+                    
+                    // Reset UI
+                    quizTimer.classList.add('hidden');
+                    startQuizBtn.classList.remove('hidden');
+                    pauseQuizBtn.classList.add('hidden');
+                    endQuizBtn.classList.add('hidden');
+                    
+                    // Show quiz ended modal
+                    quizEndedModal.classList.remove('hidden');
+                } else {
+                    alert('Failed to end quiz: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error ending quiz:', error);
+                alert('Failed to end quiz');
+            }
+        });
+
+        // View results button
+        viewResultsBtn.addEventListener('click', function() {
+            // Redirect to results page with quiz code
+            window.location.href = `results.php?session_code=${quizCode}`;
+        });
+
+        // Timer functions
+        function pauseQuiz() {
+            if (!isQuizRunning || isQuizPaused) return;
+            
+            clearInterval(timerInterval);
+            isQuizPaused = true;
+            pauseQuizBtn.innerHTML = '<i class="ri-play-line mr-2"></i>Resume';
+            quizTimer.classList.remove('timer-running', 'timer-warning', 'timer-danger');
+            quizTimer.classList.add('text-gray-500');
+        }
+
+        function resumeQuiz() {
+            if (!isQuizRunning || !isQuizPaused) return;
+            
+            isQuizPaused = false;
+            pauseQuizBtn.innerHTML = '<i class="ri-pause-line mr-2"></i>Pause';
+            quizTimer.classList.remove('text-gray-500');
+            updateTimerClass();
+            
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            if (timeLeft <= 0) {
+                endQuiz();
+                return;
+            }
+            
+            timeLeft--;
+            updateTimerDisplay();
+            updateTimerClass();
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            
+            minutesDisplay.textContent = minutes.toString().padStart(2, '0');
+            secondsDisplay.textContent = seconds.toString().padStart(2, '0');
+        }
+
+        function updateTimerClass() {
+            // Change color based on remaining time
+            const warningThreshold = 5 * 60; // 5 minutes
+            const dangerThreshold = 1 * 60; // 1 minute
+            
+            quizTimer.classList.remove('timer-running', 'timer-warning', 'timer-danger');
+            
+            if (timeLeft <= dangerThreshold) {
+                quizTimer.classList.add('timer-danger');
+            } else if (timeLeft <= warningThreshold) {
+                quizTimer.classList.add('timer-warning');
+            } else {
+                quizTimer.classList.add('timer-running');
+            }
+        }
     </script>
 </body>
 </html>
