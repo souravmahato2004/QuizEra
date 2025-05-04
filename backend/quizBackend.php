@@ -182,7 +182,7 @@ function loadQuiz($conn) {
         WHERE quiz_id = ?
         ORDER BY position ASC
     ");
-    $slideStmt->bind_param('i', $quiz_id);
+    $slideStmt->bind_param('s', $quiz_id);
     $slideStmt->execute();
     $slidesResult = $slideStmt->get_result();
     $slideStmt->close();
@@ -201,9 +201,9 @@ function loadQuiz($conn) {
             ");
             $optStmt->bind_param('i', $slide_id);
             $optStmt->execute();
+            $optResult = $optStmt->get_result();
             $options = [];
             $correctAnswer = null;
-            $optResult = $optStmt->get_result();
             
             while ($opt = $optResult->fetch_assoc()) {
                 $options[] = $opt['option_text'];
@@ -215,6 +215,7 @@ function loadQuiz($conn) {
             
             $slide['options'] = $options;
             $slide['correctAnswer'] = $correctAnswer;
+            $slides[] = $slide;
         } 
         // Get answers for other question types
         else {
@@ -232,17 +233,17 @@ function loadQuiz($conn) {
                 $slide['options'] = [''];
             }
             $slide['correctAnswer'] = 0;
+            $slides[] = $slide;
             $ansStmt->close();
         }
         
-        $slides[] = $slide;
     }
     
     // Get collaborators
     $collabStmt = $conn->prepare("
         SELECT c.user_id, u.username, c.permission_level
         FROM quiz_collaborators c
-        JOIN users u ON c.user_id = u.user_id
+        JOIN user_info u ON c.user_id = u.user_id
         WHERE c.quiz_id = ?
     ");
     $collabStmt->bind_param('i', $quiz_id);
@@ -259,7 +260,7 @@ function loadQuiz($conn) {
     $ownerStmt = $conn->prepare("
         SELECT u.username
         FROM quizzes q
-        JOIN users u ON q.owner_id = u.user_id
+        JOIN user_info u ON q.owner_id = u.user_id
         WHERE q.quiz_id = ?
     ");
     $ownerStmt->bind_param('i', $quiz_id);
