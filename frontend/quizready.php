@@ -78,6 +78,19 @@
     .pulse-animation {
         animation: pulse 2s infinite;
     }
+    
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
     </style>
 </head>
 
@@ -239,321 +252,385 @@
 
     <script>
         // Quiz state variables
-        let quizDuration = 15; // in minutes
-        let timeLeft = 0; // in seconds
-        let timerInterval = null;
-        let isQuizRunning = false;
-        let isQuizPaused = false;
-        let participantCount = 0;
-        const quizCode = "<?php echo $is_participant ? $session_code : getCurrentQuizSession($_GET['id'], $conn); ?>";
-        const isParticipant = <?php echo $is_participant ? 'true' : 'false'; ?>;
-        let quizStatusCheckInterval = null;
+let quizDuration = 15; // in minutes
+let timeLeft = 0; // in seconds
+let timerInterval = null;
+let isQuizRunning = false;
+let isQuizPaused = false;
+let participantCount = 0;
+const quizCode = "<?php echo $is_participant ? $session_code : getCurrentQuizSession($_GET['id'], $conn); ?>";
+const isParticipant = <?php echo $is_participant ? 'true' : 'false'; ?>;
+let quizStatusCheckInterval = null;
 
-        // DOM elements
-        const quizTimer = document.getElementById('quizTimer');
-        const minutesDisplay = document.getElementById('minutes');
-        const secondsDisplay = document.getElementById('seconds');
-        const quizDurationInput = document.getElementById('quizDuration');
-        const startQuizBtn = document.getElementById('startQuizBtn');
-        const pauseQuizBtn = document.getElementById('pauseQuizBtn');
-        const endQuizBtn = document.getElementById('endQuizBtn');
-        const quizControls = document.getElementById('quizControls');
-        const quizEndedModal = document.getElementById('quizEndedModal');
-        const viewResultsBtn = document.getElementById('viewResultsBtn');
-        const shareLinkBtn = document.getElementById('shareLinkBtn');
-        const refreshParticipantsBtn = document.getElementById('refreshParticipants');
-        const participantList = document.getElementById('participantList');
-        const participantCountDisplay = document.getElementById('participantCount');
+// DOM elements
+const quizTimer = document.getElementById('quizTimer');
+const minutesDisplay = document.getElementById('minutes');
+const secondsDisplay = document.getElementById('seconds');
+const quizDurationInput = document.getElementById('quizDuration');
+const startQuizBtn = document.getElementById('startQuizBtn');
+const pauseQuizBtn = document.getElementById('pauseQuizBtn');
+const endQuizBtn = document.getElementById('endQuizBtn');
+const quizControls = document.getElementById('quizControls');
+const quizEndedModal = document.getElementById('quizEndedModal');
+const viewResultsBtn = document.getElementById('viewResultsBtn');
+const shareLinkBtn = document.getElementById('shareLinkBtn');
+const refreshParticipantsBtn = document.getElementById('refreshParticipants');
+const participantList = document.getElementById('participantList');
+const participantCountDisplay = document.getElementById('participantCount');
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!isParticipant) {
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    if (!isParticipant) {
+        refreshParticipants();
+        // Set up periodic participant refresh
+        setInterval(refreshParticipants, 5000);
+        
+        // Add event listener for refresh button
+        if (refreshParticipantsBtn) {
+            refreshParticipantsBtn.addEventListener('click', () => {
                 refreshParticipants();
-                // Set up periodic participant refresh
-                setInterval(refreshParticipants, 5000);
-            } else {
-                // For participants, check quiz status periodically
-                checkQuizStatus();
-                quizStatusCheckInterval = setInterval(checkQuizStatus, 3000);
-            }
+                
+                // Visual feedback for refresh button
+                const originalText = refreshParticipantsBtn.innerHTML;
+                refreshParticipantsBtn.innerHTML = '<i class="ri-loader-4-line animate-spin mr-2"></i>Refreshing...';
+                setTimeout(() => {
+                    refreshParticipantsBtn.innerHTML = originalText;
+                }, 1000);
+            });
+        }
+    } else {
+        // For participants, check quiz status periodically
+        checkQuizStatus();
+        quizStatusCheckInterval = setInterval(checkQuizStatus, 3000);
+    }
+});
+
+// For participants - check if quiz has started
+async function checkQuizStatus() {
+    try {
+        const response = await fetch('../backend/quizreadybackend.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=check_quiz_status&session_code=${quizCode}`
         });
-
-        // For participants - check if quiz has started
-        async function checkQuizStatus() {
-            try {
-                const response = await fetch('../backend/quizreadybackend.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=check_quiz_status&session_code=${quizCode}`
-                });
-                
-                const data = await response.json();
-                
-                if (data.status === 'success' && data.started) {
-                    clearInterval(quizStatusCheckInterval);
-                    window.location.href = `mainQuiz.php?session_code=${quizCode}`;
-                }
-            } catch (error) {
-                console.error('Error checking quiz status:', error);
-            }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.started) {
+            clearInterval(quizStatusCheckInterval);
+            window.location.href = `mainQuiz.php?session_code=${quizCode}`;
         }
+    } catch (error) {
+        console.error('Error checking quiz status:', error);
+    }
+}
 
-        // Copy code functionality
-        if (document.getElementById('copyCodeBtn')) {
-            document.getElementById('copyCodeBtn').addEventListener('click', function() {
-                const code = document.getElementById('quizCode').textContent;
-                navigator.clipboard.writeText(code).then(() => {
-                    const originalText = this.innerHTML;
-                    this.innerHTML = '<i class="ri-check-line mr-2"></i>Copied!';
-                    setTimeout(() => {
-                        this.innerHTML = originalText;
-                    }, 2000);
-                });
-            });
-        }
+// Copy code functionality
+if (document.getElementById('copyCodeBtn')) {
+    document.getElementById('copyCodeBtn').addEventListener('click', function() {
+        const code = document.getElementById('quizCode').textContent;
+        navigator.clipboard.writeText(code.trim()).then(() => {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="ri-check-line mr-2"></i>Copied!';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+    });
+}
 
-        // Share link functionality
-        if (shareLinkBtn) {
-            shareLinkBtn.addEventListener('click', function() {
-                const code = document.getElementById('quizCode').textContent;
-                const shareUrl = `${window.location.origin}/join/${code}`;
-                
-                if (navigator.share) {
-                    navigator.share({
-                        title: 'Join my quiz!',
-                        text: `Use this code to join my quiz: ${code}`,
-                        url: shareUrl
-                    }).catch(err => {
-                        console.log('Error sharing:', err);
-                        copyToClipboard(shareUrl);
-                    });
-                } else {
-                    copyToClipboard(shareUrl);
-                }
-                
-                function copyToClipboard(text) {
-                    navigator.clipboard.writeText(text).then(() => {
-                        alert('Link copied to clipboard!');
-                    });
-                }
+// Share link functionality
+if (shareLinkBtn) {
+    shareLinkBtn.addEventListener('click', function() {
+        const code = document.getElementById('quizCode').textContent.trim();
+        const shareUrl = `${window.location.origin}/QuizEra/frontend/quizready.php?session_code=${code}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'Join my quiz!',
+                text: `Use this code to join my quiz: ${code}`,
+                url: shareUrl
+            }).catch(err => {
+                console.log('Error sharing:', err);
+                copyToClipboard(shareUrl);
             });
+        } else {
+            copyToClipboard(shareUrl);
         }
         
-        // Refresh participants list
-        async function refreshParticipants() {
-            try {
-                const response = await fetch('../backend/quizreadybackend.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=get_participants&session_code=${quizCode}`
-                });
-                
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    updateParticipantList(data.participants);
-                } else {
-                    console.error('Failed to fetch participants:', data.message);
-                }
-            } catch (error) {
-                console.error('Error fetching participants:', error);
-            }
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Link copied to clipboard!');
+            });
         }
+    });
+}
+
+// Refresh participants list
+async function refreshParticipants() {
+    try {
+        console.log("Refreshing participants list for code:", quizCode);
+        const response = await fetch('../backend/quizreadybackend.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=get_participants&session_code=${quizCode}`
+        });
         
-        // Update participant list in UI
-        function updateParticipantList(participants) {
-            participantList.innerHTML = '';
-            participantCount = participants.length;
-            participantCountDisplay.textContent = participantCount;
+        const data = await response.json();
+        console.log("Participants data:", data);
+        if (data.status === 'success') {
+            updateParticipantList(data.participants);
+        } else {
+            console.error('Failed to fetch participants:', data.message);
+        }
+    } catch (error) {
+        console.error('Error fetching participants:', error);
+    }
+}
+
+// Update participant list in UI
+function updateParticipantList(participants) {
+    participantList.innerHTML = '';
+    participantCount = participants ? participants.length : 0;
+    participantCountDisplay.textContent = participantCount;
+    
+    if (!participants || participantCount === 0) {
+        participantList.innerHTML = `
+            <div class="text-center text-gray-500 py-10">
+                <i class="ri-user-3-line text-4xl mb-2"></i>
+                <p>Waiting for participants to join...</p>
+            </div>
+        `;
+    } else {
+        participants.forEach(participant => {
+            const participantElement = document.createElement('div');
+            participantElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
             
-            if (participantCount === 0) {
-                participantList.innerHTML = `
-                    <div class="text-center text-gray-500 py-10">
-                        <i class="ri-user-3-line text-4xl mb-2"></i>
-                        <p>Waiting for participants to join...</p>
-                    </div>
-                `;
+            // Handle profile picture path correctly
+            let profilePic;
+            if (participant.profile_pic) {
+                // If it already includes the path
+                if (participant.profile_pic.includes('/assets/profilepic/')) {
+                    profilePic = participant.profile_pic;
+                } else {
+                    profilePic = '../assets/profilepic/' + participant.user_pic;
+                }
+            } else if (participant.user_pic) {
+                profilePic = '../assets/profilepic/' + participant.user_pic;
             } else {
-                participants.forEach(participant => {
-                    const participantElement = document.createElement('div');
-                    participantElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                    participantElement.innerHTML = `
-                        <div class="flex items-center">
-                            <img src="${participant.profile_pic || '../assets/profilepic/default.jpg'}" 
-                                 alt="${participant.username}" 
-                                 class="w-8 h-8 rounded-full object-cover mr-3">
-                            <span>${participant.username}</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Joined</span>
-                    `;
-                    participantList.appendChild(participantElement);
-                });
+                profilePic = '../assets/profilepic/demo.jpg';
             }
+            
+            participantElement.innerHTML = `
+                <div class="flex items-center">
+                    <img src="${profilePic}" 
+                         alt="${participant.username}" 
+                         class="w-8 h-8 rounded-full object-cover mr-3">
+                    <span>${participant.username}</span>
+                </div>
+                <span class="text-xs text-gray-500">Joined</span>
+            `;
+            participantList.appendChild(participantElement);
+        });
+    }
+    
+    // Log the updated participant list for debugging
+    console.log("Updated participant list. Count:", participantCount);
+}
+
+// Start quiz button
+if (startQuizBtn) {
+    startQuizBtn.addEventListener('click', async function() {
+        if (participantCount === 0) {
+            alert('No participants have joined yet!');
+            return;
         }
         
-        // Start quiz button
-        if (startQuizBtn) {
-            startQuizBtn.addEventListener('click', async function() {
-                if (participantCount === 0) {
-                    alert('No participants have joined yet!');
-                    return;
-                }
-                
-                quizDuration = parseInt(quizDurationInput.value) || 15;
-                timeLeft = quizDuration * 60; // Convert to seconds
-                
-                // Send request to server to start quiz with timer
-                try {
-                    const response = await fetch('../backend/quizreadybackend.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `action=start_quiz&session_code=${quizCode}&duration=${quizDuration}`
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.status === 'success') {
-                        isQuizRunning = true;
-                        updateTimerDisplay();
-                        quizTimer.classList.remove('hidden');
-                        quizTimer.classList.add('timer-running');
-                        
-                        // Show pause and end buttons
-                        startQuizBtn.classList.add('hidden');
-                        pauseQuizBtn.classList.remove('hidden');
-                        endQuizBtn.classList.remove('hidden');
-                        
-                        // Start the timer
-                        timerInterval = setInterval(updateTimer, 1000);
-                    } else {
-                        alert('Failed to start quiz: ' + (data.message || 'Unknown error'));
-                    }
-                } catch (error) {
-                    console.error('Error starting quiz:', error);
-                    alert('Failed to start quiz');
-                }
+        quizDuration = parseInt(quizDurationInput.value) || 15;
+        timeLeft = quizDuration * 60; // Convert to seconds
+        
+        // Send request to server to start quiz with timer
+        try {
+            const response = await fetch('../backend/quizreadybackend.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=start_quiz&session_code=${quizCode}&duration=${quizDuration}`
             });
-        }
-
-        // Pause quiz button
-        if (pauseQuizBtn) {
-            pauseQuizBtn.addEventListener('click', function() {
-                if (isQuizPaused) {
-                    resumeQuiz();
-                } else {
-                    pauseQuiz();
-                }
-            });
-        }
-
-        // End quiz button
-        if (endQuizBtn) {
-            endQuizBtn.addEventListener('click', async function() {
-                clearInterval(timerInterval);
-                
-                try {
-                    const response = await fetch('../backend/quizreadybackend.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `action=end_quiz&session_code=${quizCode}`
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.status === 'success') {
-                        isQuizRunning = false;
-                        isQuizPaused = false;
-                        
-                        // Reset UI
-                        quizTimer.classList.add('hidden');
-                        startQuizBtn.classList.remove('hidden');
-                        pauseQuizBtn.classList.add('hidden');
-                        endQuizBtn.classList.add('hidden');
-                        
-                        // Show quiz ended modal
-                        quizEndedModal.classList.remove('hidden');
-                    } else {
-                        alert('Failed to end quiz: ' + (data.message || 'Unknown error'));
-                    }
-                } catch (error) {
-                    console.error('Error ending quiz:', error);
-                    alert('Failed to end quiz');
-                }
-            });
-        }
-
-        // View results button
-        if (viewResultsBtn) {
-            viewResultsBtn.addEventListener('click', function() {
-                // Redirect to results page with quiz code
-                window.location.href = `results.php?session_code=${quizCode}`;
-            });
-        }
-
-        // Timer functions
-        function pauseQuiz() {
-            if (!isQuizRunning || isQuizPaused) return;
             
-            clearInterval(timerInterval);
-            isQuizPaused = true;
-            pauseQuizBtn.innerHTML = '<i class="ri-play-line mr-2"></i>Resume';
-            quizTimer.classList.remove('timer-running', 'timer-warning', 'timer-danger');
-            quizTimer.classList.add('text-gray-500');
-        }
-
-        function resumeQuiz() {
-            if (!isQuizRunning || !isQuizPaused) return;
+            const data = await response.json();
             
-            isQuizPaused = false;
-            pauseQuizBtn.innerHTML = '<i class="ri-pause-line mr-2"></i>Pause';
-            quizTimer.classList.remove('text-gray-500');
-            updateTimerClass();
-            
-            timerInterval = setInterval(updateTimer, 1000);
-        }
-
-        function updateTimer() {
-            if (timeLeft <= 0) {
-                endQuiz();
-                return;
-            }
-            
-            timeLeft--;
-            updateTimerDisplay();
-            updateTimerClass();
-        }
-
-        function updateTimerDisplay() {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            
-            minutesDisplay.textContent = minutes.toString().padStart(2, '0');
-            secondsDisplay.textContent = seconds.toString().padStart(2, '0');
-        }
-
-        function updateTimerClass() {
-            // Change color based on remaining time
-            const warningThreshold = 5 * 60; // 5 minutes
-            const dangerThreshold = 1 * 60; // 1 minute
-            
-            quizTimer.classList.remove('timer-running', 'timer-warning', 'timer-danger');
-            
-            if (timeLeft <= dangerThreshold) {
-                quizTimer.classList.add('timer-danger');
-            } else if (timeLeft <= warningThreshold) {
-                quizTimer.classList.add('timer-warning');
-            } else {
+            if (data.status === 'success') {
+                isQuizRunning = true;
+                updateTimerDisplay();
+                quizTimer.classList.remove('hidden');
                 quizTimer.classList.add('timer-running');
+                
+                // Show pause and end buttons
+                startQuizBtn.classList.add('hidden');
+                pauseQuizBtn.classList.remove('hidden');
+                endQuizBtn.classList.remove('hidden');
+                
+                // Start the timer
+                timerInterval = setInterval(updateTimer, 1000);
+            } else {
+                alert('Failed to start quiz: ' + (data.message || 'Unknown error'));
             }
+        } catch (error) {
+            console.error('Error starting quiz:', error);
+            alert('Failed to start quiz');
         }
+    });
+}
+
+// Pause quiz button
+if (pauseQuizBtn) {
+    pauseQuizBtn.addEventListener('click', function() {
+        if (isQuizPaused) {
+            resumeQuiz();
+        } else {
+            pauseQuiz();
+        }
+    });
+}
+
+// End quiz button
+if (endQuizBtn) {
+    endQuizBtn.addEventListener('click', async function() {
+        clearInterval(timerInterval);
+        
+        try {
+            const response = await fetch('../backend/quizreadybackend.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=end_quiz&session_code=${quizCode}`
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                isQuizRunning = false;
+                isQuizPaused = false;
+                
+                // Reset UI
+                quizTimer.classList.add('hidden');
+                startQuizBtn.classList.remove('hidden');
+                pauseQuizBtn.classList.add('hidden');
+                endQuizBtn.classList.add('hidden');
+                
+                // Show quiz ended modal
+                quizEndedModal.classList.remove('hidden');
+            } else {
+                alert('Failed to end quiz: ' + (data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error ending quiz:', error);
+            alert('Failed to end quiz');
+        }
+    });
+}
+
+// View results button
+if (viewResultsBtn) {
+    viewResultsBtn.addEventListener('click', function() {
+        // Redirect to results page with quiz code
+        window.location.href = `results.php?session_code=${quizCode}`;
+    });
+}
+
+// Timer functions
+function pauseQuiz() {
+    if (!isQuizRunning || isQuizPaused) return;
+    
+    clearInterval(timerInterval);
+    isQuizPaused = true;
+    pauseQuizBtn.innerHTML = '<i class="ri-play-line mr-2"></i>Resume';
+    quizTimer.classList.remove('timer-running', 'timer-warning', 'timer-danger');
+    quizTimer.classList.add('text-gray-500');
+}
+
+function resumeQuiz() {
+    if (!isQuizRunning || !isQuizPaused) return;
+    
+    isQuizPaused = false;
+    pauseQuizBtn.innerHTML = '<i class="ri-pause-line mr-2"></i>Pause';
+    quizTimer.classList.remove('text-gray-500');
+    updateTimerClass();
+    
+    timerInterval = setInterval(updateTimer, 1000);
+}
+
+function updateTimer() {
+    if (timeLeft <= 0) {
+        endQuiz();
+        return;
+    }
+    
+    timeLeft--;
+    updateTimerDisplay();
+    updateTimerClass();
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    
+    minutesDisplay.textContent = minutes.toString().padStart(2, '0');
+    secondsDisplay.textContent = seconds.toString().padStart(2, '0');
+}
+
+function updateTimerClass() {
+    // Change color based on remaining time
+    const warningThreshold = 5 * 60; // 5 minutes
+    const dangerThreshold = 1 * 60; // 1 minute
+    
+    quizTimer.classList.remove('timer-running', 'timer-warning', 'timer-danger');
+    
+    if (timeLeft <= dangerThreshold) {
+        quizTimer.classList.add('timer-danger');
+    } else if (timeLeft <= warningThreshold) {
+        quizTimer.classList.add('timer-warning');
+    } else {
+        quizTimer.classList.add('timer-running');
+    }
+}
+
+// Function to end the quiz (used when timer reaches 0)
+function endQuiz() {
+    clearInterval(timerInterval);
+    
+    fetch('../backend/quizreadybackend.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `action=end_quiz&session_code=${quizCode}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        isQuizRunning = false;
+        isQuizPaused = false;
+        
+        // Reset UI
+        quizTimer.classList.add('hidden');
+        startQuizBtn.classList.remove('hidden');
+        pauseQuizBtn.classList.add('hidden');
+        endQuizBtn.classList.add('hidden');
+        
+        // Show quiz ended modal
+        quizEndedModal.classList.remove('hidden');
+    })
+    .catch(error => {
+        console.error('Error ending quiz:', error);
+    });
+}
     </script>
 </body>
 </html>

@@ -120,7 +120,7 @@ try {
         // If quiz is active, immediately redirect to quiz page
         echo json_encode([
             'valid' => true,
-            'redirect' => 'mainQuiz.php?session_code='.$code,
+            'redirect' => 'quizReady.php?session_code='.$code,
             'session' => [
                 'id' => $session['id'],
                 'quiz_title' => $session['quiz_title'],

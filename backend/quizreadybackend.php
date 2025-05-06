@@ -1,200 +1,415 @@
 <?php
-session_start();
-include '../backend/db.php';
+// Start session if not already started
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
+include '../backend/db.php';
 // Check if user is logged in
 if (!isset($_SESSION['id'])) {
-    header("Location: ../login.php");
-    exit();
-}
-
-// Get quiz information
-$quiz_id = isset($_GET['id']) ? $_GET['id'] : null;
-$title = $quiz_id ? getQuizTitle($quiz_id, $conn) : 'Untitled Quiz';
-
-// Check if this is a participant joining via code
-$is_participant = isset($_GET['join_code']);
-$session_code = $is_participant ? $_GET['join_code'] : null;
-
-// If participant, add them to the session
-if ($is_participant) {
-    addParticipant($session_code, $_SESSION['id'], $conn);
-}
-
-// Function to get current quiz session
-function getCurrentQuizSession($quiz_id, $conn) {
-    $host_id = $_SESSION['id'];
-    $stmt = $conn->prepare("SELECT code FROM quiz_sessions WHERE quiz_id = ? AND host_id = ? AND status = 'waiting' ORDER BY created_at DESC LIMIT 1");
-    $stmt->bind_param("ii", $quiz_id, $host_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return $row['code'];
-    }
-    return generateAndStoreQuizCode($quiz_id, $conn);
-}
-
-// Function to generate and store a unique 6-digit quiz code
-function generateAndStoreQuizCode($quiz_id, $conn) {
-    $code = mt_rand(100000, 999999);
-    $host_id = $_SESSION['id'];
-    
-    $attempts = 0;
-    while ($attempts < 10) {
-        $stmt = $conn->prepare("SELECT id FROM quiz_sessions WHERE code = ?");
-        $stmt->bind_param("s", $code);
-        $stmt->execute();
-        
-        if ($stmt->get_result()->num_rows === 0) {
-            $stmt = $conn->prepare("INSERT INTO quiz_sessions (quiz_id, host_id, code, created_at) VALUES (?, ?, ?, NOW())");
-            $stmt->bind_param("iis", $quiz_id, $host_id, $code);
-            
-            if ($stmt->execute()) {
-                return $code;
-            }
-            break;
-        }
-        
-        $code = mt_rand(100000, 999999);
-        $attempts++;
-    }
-    
-    return false;
-}
-
-// Function to get quiz title by ID
-function getQuizTitle($quiz_id, $conn) {
-    $stmt = $conn->prepare("SELECT title FROM quizzes WHERE quiz_id = ?");
-    $stmt->bind_param("i", $quiz_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return $row['title'];
-    }
-    return 'Untitled Quiz';
-}
-
-// Function to add a participant to a quiz session
-function addParticipant($session_code, $user_id, $conn) {
-    // First get the session ID
-    $stmt = $conn->prepare("SELECT id FROM quiz_sessions WHERE code = ?");
-    $stmt->bind_param("s", $session_code);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 0) {
-        return false;
-    }
-    
-    $session = $result->fetch_assoc();
-    $session_id = $session['id'];
-    
-    // Check if user is already a participant
-    $stmt = $conn->prepare("SELECT id FROM quiz_participants WHERE session_id = ? AND user_id = ?");
-    $stmt->bind_param("ii", $session_id, $user_id);
-    $stmt->execute();
-    
-    if ($stmt->get_result()->num_rows > 0) {
-        return true;
-    }
-    
-    // Add participant
-    $stmt = $conn->prepare("INSERT INTO quiz_participants (session_id, user_id, joined_at) VALUES (?, ?, NOW())");
-    $stmt->bind_param("ii", $session_id, $user_id);
-    
-    return $stmt->execute();
-}
-
-// Function to get active participants for a quiz session
-function getParticipants($session_code, $conn) {
-    $stmt = $conn->prepare("
-        SELECT u.id, u.username, u.email, u.profile_pic 
-        FROM quiz_participants p
-        JOIN users u ON p.user_id = u.id
-        JOIN quiz_sessions s ON p.session_id = s.id
-        WHERE s.code = ? AND s.status != 'completed'
-    ");
-    $stmt->bind_param("s", $session_code);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    $participants = [];
-    while ($row = $result->fetch_assoc()) {
-        $participants[] = $row;
-    }
-    return $participants;
-}
-
-// Function to start a quiz session with timer
-function startQuizSession($session_code, $duration_minutes, $conn) {
-    $end_time = date('Y-m-d H:i:s', strtotime("+$duration_minutes minutes"));
-    
-    $stmt = $conn->prepare("UPDATE quiz_sessions 
-                           SET status = 'active', 
-                               started_at = NOW(), 
-                               end_at = ?,
-                               timer_duration = ?
-                           WHERE code = ?");
-    $stmt->bind_param("sis", $duration_minutes, $end_time, $session_code);
-    
-    return $stmt->execute();
-}
-
-// Function to check if quiz has started
-function hasQuizStarted($session_code, $conn) {
-    $stmt = $conn->prepare("SELECT status FROM quiz_sessions WHERE code = ?");
-    $stmt->bind_param("s", $session_code);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return $row['status'] === 'active';
-    }
-    return false;
-}
-
-// Handle AJAX requests
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    header('Content-Type: application/json');
-    
-    if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'get_participants':
-                if (isset($_POST['session_code'])) {
-                    $participants = getParticipants($_POST['session_code'], $conn);
-                    echo json_encode(['status' => 'success', 'participants' => $participants]);
-                }
-                break;
-                
-            case 'start_quiz':
-                if (isset($_POST['session_code']) && isset($_POST['duration'])) {
-                    $success = startQuizSession($_POST['session_code'], $_POST['duration'], $conn);
-                    echo json_encode(['status' => $success ? 'success' : 'error']);
-                }
-                break;
-                
-            case 'check_quiz_status':
-                if (isset($_POST['session_code'])) {
-                    $hasStarted = hasQuizStarted($_POST['session_code'], $conn);
-                    echo json_encode(['status' => 'success', 'started' => $hasStarted]);
-                }
-                break;
-                
-            default:
-                echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
-        }
+    // Redirect to login page if not logged in
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        // For AJAX requests, return error
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Authentication required']);
+        exit;
+    } else {
+        header("Location: login.php");
         exit;
     }
 }
 
-// For participants, check if quiz has started and redirect if needed
-if ($is_participant && hasQuizStarted($session_code, $conn)) {
-    header("Location: mainQuiz.php?session_code=$session_code");
-    exit();
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    
+    switch ($action) {
+        case 'get_participants':
+            getParticipants();
+            break;
+        case 'start_quiz':
+            startQuiz();
+            break;
+        case 'pause_quiz':
+            pauseQuiz();
+            break;
+        case 'end_quiz':
+            endQuiz();
+            break;
+        case 'check_quiz_status':
+            checkQuizStatus();
+            break;
+        default:
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
+            break;
+    }
+    exit;
+}
+
+// Main code for the page
+$is_participant = false;
+$title = '';
+$session_code = '';
+
+// Check if accessing as host or participant
+if (isset($_GET['id'])) {
+    // Host is accessing the page with quiz ID
+    $quizId = $_GET['id'];
+    $title = getQuizTitle($quizId, $conn);
+    $session_code = getCurrentQuizSession($quizId, $conn);
+} elseif (isset($_GET['session_code'])) {
+    // Participant is accessing with session code
+    $is_participant = true;
+    $session_code = $_GET['session_code'];
+    $title = getQuizTitleByCode($session_code, $conn);
+    
+    // Add participant to session if not already added
+    addParticipantToSession($session_code, $conn);
+}
+
+// Function to get quiz title by ID
+function getQuizTitle($quizId, $conn) {
+    try {
+        $stmt = $conn->prepare("SELECT title FROM quizzes WHERE quiz_id = ?");
+        $stmt->bind_param('i', $quizId);
+        $stmt->execute();
+        
+        $result = $stmt->get_result()->fetch_assoc();
+        return $result ? $result['title'] : 'Unknown Quiz';
+    } catch (Exception $e) {
+        return 'Quiz';
+    }
+}
+
+// Function to get quiz title by session code
+function getQuizTitleByCode($code, $conn) {
+    try {
+        $stmt = $conn->prepare("
+            SELECT q.title 
+            FROM quizzes q
+            JOIN quiz_sessions qs ON q.quiz_id = qs.quiz_id
+            WHERE qs.code = ? AND qs.status = 'active'
+        ");
+        $stmt->bind_param('s', $code); // Changed to 's' for string type
+        $stmt->execute();
+        
+        $result = $stmt->get_result()->fetch_assoc();
+        return $result ? $result['title'] : 'Unknown Quiz';
+    } catch (Exception $e) {
+        return 'Quiz';
+    }
+}
+
+// Function to get or create current quiz session code
+function getCurrentQuizSession($quizId, $conn) {
+    try {
+        // Check if there's an active session
+        $stmt = $conn->prepare("
+            SELECT code 
+            FROM quiz_sessions 
+            WHERE quiz_id = ? AND status = 'active'
+            ORDER BY created_at DESC
+            LIMIT 1
+        ");
+        $stmt->bind_param('i', $quizId);
+        $stmt->execute();
+        
+        $result = $stmt->get_result()->fetch_assoc();
+        
+        if ($result) {
+            return $result['code'];
+        }
+        
+        // Create new session if none exists
+        $sessionCode = generateSessionCode();
+        $userId = $_SESSION['id'];
+        
+        $stmt = $conn->prepare("
+            INSERT INTO quiz_sessions (quiz_id, code, host_id, status, created_at)
+            VALUES (?, ?, ?, 'active', NOW())
+        ");
+        $stmt->bind_param('isi', $quizId, $sessionCode, $userId);
+        $stmt->execute();
+        
+        return $sessionCode;
+    } catch (Exception $e) {
+        return 'ERROR';
+    }
+}
+
+// Function to generate a random 6-character session code
+function generateSessionCode() {
+    $characters = '0123456789';
+    $code = '';
+    
+    for ($i = 0; $i < 6; $i++) {
+        $code .= $characters[rand(0, strlen($characters) - 1)];
+    }
+    
+    return $code;
+}
+
+// Function to add participant to session
+function addParticipantToSession($code, $conn) {
+    try {
+        // Get session ID
+        $stmt = $conn->prepare("SELECT id FROM quiz_sessions WHERE code = ? AND status = 'active'");
+        $stmt->bind_param('s', $code); // Changed to 's' for string
+        $stmt->execute();
+        
+        $result = $stmt->get_result()->fetch_assoc();
+        if (!$result) {
+            return false;
+        }
+        
+        $sessionId = $result['id'];
+        $userId = $_SESSION['id'];
+        
+        // Check if participant is already in session
+        $stmt = $conn->prepare("
+            SELECT id FROM quiz_participants 
+            WHERE session_id = ? AND user_id = ?
+        ");
+        $stmt->bind_param('ii', $sessionId, $userId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            return true; // Already added
+        }
+        
+        // Add participant to session
+        $stmt = $conn->prepare("
+            INSERT INTO quiz_participants (session_id, user_id, joined_at, score, status)
+            VALUES (?, ?, NOW(), 0, 'active')
+        ");
+        $stmt->bind_param('ii', $sessionId, $userId);
+        $stmt->execute();
+        
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+// Function to get participants for a quiz session
+function getParticipants() {
+    global $conn;
+    
+    // Get session code from POST request
+    if (!isset($_POST['session_code'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Session code required']);
+        return;
+    }
+    
+    $sessionCode = $_POST['session_code'];
+    
+    try {
+        // Get session ID
+        $stmt = $conn->prepare("SELECT id FROM quiz_sessions WHERE code = ? AND status IN ('active', 'started')");
+        $stmt->bind_param('s', $sessionCode);
+        $stmt->execute();
+        
+        $result = $stmt->get_result()->fetch_assoc();
+        if (!$result) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid session code or session not active', 'debug' => ['code' => $sessionCode]]);
+            return;
+        }
+        
+        $sessionId = $result['id'];
+        
+        // Get participants
+        $stmt = $conn->prepare("
+            SELECT u.user_id, u.username, u.user_pic, qp.joined_at
+            FROM quiz_participants qp
+            JOIN user_info u ON qp.user_id = u.user_id
+            WHERE qp.session_id = ?
+            ORDER BY qp.joined_at
+        ");
+        $stmt->bind_param('i', $sessionId);
+        $stmt->execute();
+        
+        // Debug - log the SQL query
+        $debug_info = [
+            'session_id' => $sessionId,
+            'participants_count' => 0
+        ];
+        
+        $result = $stmt->get_result();
+        $participants = [];
+        
+        while ($row = $result->fetch_assoc()) {
+            $participants[] = $row;
+        }
+        
+        $debug_info['participants_count'] = count($participants);
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'success', 
+            'participants' => $participants,
+            'debug' => $debug_info
+        ]);
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Database error: ' . $e->getMessage()
+        ]);
+    }
+}
+
+// Function to start a quiz
+function startQuiz() {
+    global $conn;
+    
+    if (!isset($_POST['session_code']) || !isset($_POST['duration'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Missing parameters']);
+        return;
+    }
+    
+    $sessionCode = $_POST['session_code'];
+    $duration = intval($_POST['duration']);
+    
+    try {
+        // Update session status to 'started'
+        $stmt = $conn->prepare("
+            UPDATE quiz_sessions
+            SET status = 'started', duration = ?, started_at = NOW()
+            WHERE code = ? AND status = 'active'
+        ");
+        $stmt->bind_param('is', $duration, $sessionCode);
+        $stmt->execute();
+        
+        $affectedRows = $stmt->affected_rows;
+        
+        if ($affectedRows > 0) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success']);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid session']);
+        }
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+// Function to pause a quiz
+function pauseQuiz() {
+    global $conn;
+    
+    if (!isset($_POST['session_code'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Session code required']);
+        return;
+    }
+    
+    $sessionCode = $_POST['session_code'];
+    
+    try {
+        // Update session status to 'paused'
+        $stmt = $conn->prepare("
+            UPDATE quiz_sessions
+            SET status = 'paused', paused_at = NOW()
+            WHERE code = ? AND status = 'started'
+        ");
+        $stmt->bind_param('s', $sessionCode);
+        $stmt->execute();
+        
+        $affectedRows = $stmt->affected_rows;
+        
+        if ($affectedRows > 0) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success']);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Quiz not in progress']);
+        }
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+// Function to end a quiz
+function endQuiz() {
+    global $conn;
+    
+    if (!isset($_POST['session_code'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Session code required']);
+        return;
+    }
+    
+    $sessionCode = $_POST['session_code'];
+    
+    try {
+        // Update session status to 'completed'
+        $stmt = $conn->prepare("
+            UPDATE quiz_sessions
+            SET status = 'completed', ended_at = NOW()
+            WHERE code = ? AND (status = 'started' OR status = 'paused' OR status = 'active')
+        ");
+        $stmt->bind_param('s', $sessionCode);
+        $stmt->execute();
+        
+        $affectedRows = $stmt->affected_rows;
+        
+        if ($affectedRows > 0) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success']);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid session']);
+        }
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+// Function to check quiz status (for participants)
+function checkQuizStatus() {
+    global $conn;
+    
+    if (!isset($_POST['session_code'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Session code required']);
+        return;
+    }
+    
+    $sessionCode = $_POST['session_code'];
+    
+    try {
+        // Get session status
+        $stmt = $conn->prepare("SELECT status FROM quiz_sessions WHERE code = ?");
+        $stmt->bind_param('s', $sessionCode);
+        $stmt->execute();
+        
+        $result = $stmt->get_result()->fetch_assoc();
+        if (!$result) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid session']);
+            return;
+        }
+        
+        $quizStarted = ($result['status'] === 'started');
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'success',
+            'started' => $quizStarted,
+            'quiz_status' => $result['status']
+        ]);
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
 }
 ?>
