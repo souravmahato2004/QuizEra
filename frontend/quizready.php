@@ -320,7 +320,7 @@ async function checkQuizStatus() {
         
         if (data.status === 'success' && data.started) {
             clearInterval(quizStatusCheckInterval);
-            window.location.href = `mainQuiz.php?session_code=${quizCode}`;
+            window.location.href = `presentquiz.php?session_code=${quizCode}`;
         }
     } catch (error) {
         console.error('Error checking quiz status:', error);
