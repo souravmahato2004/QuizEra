@@ -181,8 +181,8 @@ function addParticipantToSession($code, $conn) {
         
         // Add participant to session
         $stmt = $conn->prepare("
-            INSERT INTO quiz_participants (session_id, user_id, joined_at, score, status)
-            VALUES (?, ?, NOW(), 0, 'active')
+            INSERT INTO quiz_participants (session_id, user_id, joined_at, score)
+            VALUES (?, ?, NOW(), 0)
         ");
         $stmt->bind_param('ii', $sessionId, $userId);
         $stmt->execute();
@@ -265,24 +265,24 @@ function getParticipants() {
 // Function to start a quiz
 function startQuiz() {
     global $conn;
-    
+
     if (!isset($_POST['session_code']) || !isset($_POST['duration'])) {
         header('Content-Type: application/json');
         echo json_encode(['status' => 'error', 'message' => 'Missing parameters']);
         return;
     }
     
-    $sessionCode = $_POST['session_code'];
+    $sessionCode = intval($_POST['session_code']);
     $duration = intval($_POST['duration']);
     
     try {
         // Update session status to 'started'
         $stmt = $conn->prepare("
             UPDATE quiz_sessions
-            SET status = 'started', duration = ?, started_at = NOW()
+            SET status = 'started', timer_duration = ?, started_at = NOW()
             WHERE code = ? AND status = 'active'
         ");
-        $stmt->bind_param('is', $duration, $sessionCode);
+        $stmt->bind_param('ii', $duration, $sessionCode);
         $stmt->execute();
         
         $affectedRows = $stmt->affected_rows;
@@ -353,7 +353,7 @@ function endQuiz() {
         // Update session status to 'completed'
         $stmt = $conn->prepare("
             UPDATE quiz_sessions
-            SET status = 'completed', ended_at = NOW()
+            SET status = 'completed', end_at = NOW()
             WHERE code = ? AND (status = 'started' OR status = 'paused' OR status = 'active')
         ");
         $stmt->bind_param('s', $sessionCode);
