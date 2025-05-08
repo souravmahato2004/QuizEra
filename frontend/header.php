@@ -107,7 +107,7 @@ document.addEventListener('click', function(e) {
                     window.location.href = data.redirect;
                 } else {
                     // Fallback to the default redirect
-                    window.location.href = `quizready.php?join_code=${code}`;
+                    window.location.href = `quizready.php?session_code=${code}`;
                 }
             } else {
                 // Show error message

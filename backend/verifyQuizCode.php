@@ -172,7 +172,7 @@ try {
     // Return success response with session details
     echo json_encode([
         'valid' => true,
-        'redirect' => 'quizready.php?join_code='.$code,
+        'redirect' => 'quizready.php?session_code='.$code,
         'session' => [
             'id' => $session['id'],
             'quiz_id' => $session['quiz_id'],
