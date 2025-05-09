@@ -279,18 +279,21 @@
 
     <!-- modal for uploading image. -->
     <div id="openModal" class="fixed inset-0 bg-black bg-opacity-40 flex hidden justify-center items-center z-50">
-        <div class="bg-white rounded-2xl p-6 w-[600px] h-auto">
-            <h2 class="text-xl font-semibold mb-4 text-center text-purple-700">Upload Image</h2>
-            <div id="drop-area"
-                class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer transition hover:border-purple-500 hover:bg-purple-50">
-                <input type="file" id="fileElem" accept="image/*" class="hidden">
-                <p class="text-gray-500 mb-2">Drag & drop an image here<br>or click to upload</p>
-                <div id="preview" class="mt-4"></div>
-            </div>
+    <div class="bg-white rounded-2xl p-6 w-[600px] h-auto">
+        <h2 class="text-xl font-semibold mb-4 text-center text-purple-700">Upload Image</h2>
+        <div id="drop-area"
+            class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer transition hover:border-purple-500 hover:bg-purple-50"
+            onclick="document.getElementById('fileElem').click()">
+            <input type="file" id="fileElem" accept="image/*" class="hidden">
+            <p class="text-gray-500 mb-2">Drag & drop an image here<br>or click to upload</p>
+            <div id="preview" class="mt-4"></div>
+        </div>
+        <div class="flex justify-center mt-6">
             <button id="closeModalBtn"
-                class="mt-10 ml-52 bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 w-1/4">Close</button>
+                class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600">Close</button>
         </div>
     </div>
+</div>
 
     <script src="../assets/js/quiz.js"></script>
 </body>
