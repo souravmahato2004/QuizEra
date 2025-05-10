@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Fetch leaderboard data from server
     async function fetchLeaderboardData() {
     try {
-        const response = await fetch(`../backend/leaderboardBackend.php?session_id=${sessionId}&quiz_id=${quizId}&user_id=${userId}&host_id=${hostId}&ajax=1`);
+        const response = await fetch(`../backend/leaderboardBackend.php?session_id=${sessionId}&quiz_id=${quizId}&user_id=${userId}&ajax=1`);
         if (!response.ok) {
             throw new Error(`Network response was not ok: ${response.status}`);
         }
