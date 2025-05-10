@@ -66,9 +66,9 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
         }
     }
 
-    // Prepare data structure
-    return [
-        'quizTitle' => 'Quiz Results', // You might want to fetch this from DB
+    // Prepare base data structure
+    $data = [
+        'quizTitle' => 'Quiz Results',
         'user' => [
             'id' => $currentUser['user_id'],
             'name' => $currentUser['name'],
@@ -84,23 +84,64 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
                 ];
             }, $questionResults)
         ],
-        'participants' => array_map(function($p) use ($totalQuestions) {
-            return [
-                'id' => $p['user_id'],
-                'name' => $p['name'],
-                'score' => $p['score'],
-                'totalQuestions' => $totalQuestions,
-                'timeTaken' => 'N/A', // You might calculate this for each participant
-                'rank' => $p['rank']
-            ];
-        }, $allParticipants)
+        'participants' => []
     ];
+
+    // Prepare participant data
+    foreach ($allParticipants as $participant) {
+        $participantData = [
+            'id' => $participant['user_id'],
+            'name' => $participant['name'],
+            'score' => $participant['score'],
+            'totalQuestions' => $totalQuestions,
+            'timeTaken' => 'N/A',
+            'rank' => $participant['rank']
+        ];
+
+        // If host is viewing, include question results for all participants
+        $is_host = false;
+        if ($session_id && $user_id) {
+            $stmt = $conn->prepare("SELECT host_id FROM quiz_sessions WHERE id = ?");
+            $stmt->bind_param("i", $session_id);
+            $stmt->execute();
+            $session = $stmt->get_result()->fetch_assoc();
+            $is_host = ($session && $session['host_id'] == $user_id);
+        }
+
+        if ($is_host) {
+            $stmt = $conn->prepare("
+                SELECT qs.question, qr.is_correct, qr.submitted_at
+                FROM quiz_responses qr
+                JOIN quiz_slides qs ON qr.slide_id = qs.slide_id
+                JOIN quiz_sessions qses ON qr.quiz_id = qses.quiz_id
+                WHERE qr.user_id = ? AND qses.id = ?
+                ORDER BY qs.position
+            ");
+            $stmt->bind_param("ii", $participant['user_id'], $session_id);
+            $stmt->execute();
+            $participantQuestions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+            $participantData['questionResults'] = array_map(function($q) {
+                return [
+                    'question' => $q['question'],
+                    'correct' => (bool)$q['is_correct'],
+                    'timeSpent' => 'N/A'
+                ];
+            }, $participantQuestions);
+        }
+
+        $data['participants'][] = $participantData;
+    }
+
+    return $data;
 }
+// Prepare participant data
+
 
 // Only execute if called directly for AJAX requests
 if (isset($_GET['ajax'])) {
     header('Content-Type: application/json');
-    
+
     // Get and validate parameters
     $session_id = filter_input(INPUT_GET, 'session_id', FILTER_VALIDATE_INT);
     $quiz_id = filter_input(INPUT_GET, 'quiz_id', FILTER_VALIDATE_INT);
