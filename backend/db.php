@@ -1,22 +1,39 @@
 <?php
-    // if(session_status()==PHP_SESSION_NONE){
-    //     session_start();
-    // }
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname="quizera";
+// db.php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "quizera";
 
-    $conn = mysqli_connect($servername,$username,$password,$dbname);
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-    if(!$conn){
-        die("Sorry we failed to connect".mysqli_connect_error());
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Set charset
+$conn->set_charset("utf8mb4");
+
+// Helper function for prepared statements
+function executeQuery($conn, $sql, $params = [], $types = "") {
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        throw new Exception("Prepare failed: " . $conn->error);
     }
-    if ($conn->connect_error) {
-        // Don't output HTML here - we need clean JSON responses
-        header('Content-Type: application/json');
-        echo json_encode(['status' => 'error', 'message' => 'Database connection failed']);
-        exit;
+    
+    if (!empty($params)) {
+        if (empty($types)) {
+            $types = str_repeat("s", count($params));
+        }
+        $stmt->bind_param($types, ...$params);
     }
-    $conn->set_charset("utf8mb4");
+    
+    if (!$stmt->execute()) {
+        throw new Exception("Execute failed: " . $stmt->error);
+    }
+    
+    return $stmt;
+}
 ?>

@@ -1,38 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Quiz Data - This would normally come from your backend/API
-    const quizData = {
-        title: "World Capitals",
-        duration: 15 * 60, // 15 minutes in seconds
-        questions: [
-            {
-                text: "What is the capital of France?",
-                type: "multiple",
-                options: ["London", "Berlin", "Paris", "Madrid"],
-                correctAnswer: 2,
-                image: null,
-                optionColors: ["red-500", "yellow-400", "green-500", "blue-500"]
-            },
-            {
-                text: "Type the capital of Japan:",
-                type: "one-word",
-                correctAnswer: "tokyo",
-                image: null
-            },
-            {
-                text: "What is the capital of Germany?",
-                type: "multiple",
-                options: ["Munich", "Hamburg", "Berlin", "Frankfurt"],
-                correctAnswer: 2,
-                image: null,
-                optionColors: ["red-500", "yellow-400", "green-500", "blue-500"]
-            }
-        ],
-        participants: [
-            { id: 1, name: "JohnDoe", score: 0, avatar: "J", hasAnswered: true },
-            { id: 2, name: "JaneSmith", score: 0, avatar: "J", hasAnswered: false },
-            { id: 3, name: "BobJohnson", score: 0, avatar: "B", hasAnswered: true },
-        ]
-    };
+    // Get session code from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionCode = urlParams.get('session_code');
+    
+    if (!sessionCode) {
+        alert('No session code provided!');
+        window.location.href = '/'; // Redirect to home
+        return;
+    }
 
     // DOM Elements
     const dom = {
@@ -55,31 +30,72 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // Quiz State
+    let quizData = {
+        title: "",
+        duration: 0,
+        questions: [],
+        participants: []
+    };
     let currentQuestionIndex = 0;
-    let userAnswers = Array(quizData.questions.length).fill(null);
-    let visitedQuestions = Array(quizData.questions.length).fill(false);
+    let userAnswers = [];
+    let visitedQuestions = [];
     let overallTimer;
     let quizEndTime;
     let redirectTimer;
     let countdown = 3;
 
     // Initialize Quiz
-    function initQuiz() {
-        dom.quizTitle.textContent = quizData.title;
-        dom.participantCount.textContent = quizData.participants.length;
-        dom.modalTotalQuestions.textContent = quizData.questions.length;
-        updateQuestionCount();
-        loadQuestion(currentQuestionIndex);
-        renderQuestionNavigation();
-        renderParticipants();
-        
-        // Start overall quiz timer
-        startOverallTimer(quizData.duration);
-        
-        // Show submit button on last question
-        if (quizData.questions.length === 1) {
-            dom.submitBtn.classList.remove('hidden');
-            dom.nextBtn.classList.add('hidden');
+    async function initQuiz() {
+        try {
+            // Fetch quiz data from API
+            const response = await fetch(`/api.php?session_code=${sessionCode}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch quiz data');
+            }
+            
+            const data = await response.json();
+            
+            // Initialize quiz state
+            quizData = {
+                title: data.quiz.title,
+                duration: data.quiz.duration,
+                questions: data.questions.map(q => ({
+                    slide_id: q.slide_id,
+                    text: q.text,
+                    type: q.type === 'multiple' ? 'multiple' : 'one-word',
+                    options: q.options ? q.options.map(o => o.text) : [],
+                    correctAnswer: q.correct_answer,
+                    image: q.image,
+                    optionColors: ["red-500", "yellow-400", "green-500", "blue-500"]
+                })),
+                participants: data.participants
+            };
+            
+            userAnswers = Array(quizData.questions.length).fill(null);
+            visitedQuestions = Array(quizData.questions.length).fill(false);
+            
+            // Update UI
+            dom.quizTitle.textContent = quizData.title;
+            dom.participantCount.textContent = quizData.participants.length;
+            dom.modalTotalQuestions.textContent = quizData.questions.length;
+            updateQuestionCount();
+            loadQuestion(currentQuestionIndex);
+            renderQuestionNavigation();
+            renderParticipants();
+            
+            // Start overall quiz timer
+            startOverallTimer(quizData.duration);
+            
+            // Show submit button on last question
+            if (quizData.questions.length === 1) {
+                dom.submitBtn.classList.remove('hidden');
+                dom.nextBtn.classList.add('hidden');
+            }
+            
+        } catch (error) {
+            console.error('Error loading quiz:', error);
+            alert('Failed to load quiz. Please try again.');
+            window.location.href = '/';
         }
     }
 
@@ -297,23 +313,51 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Quiz Submission
-    function submitQuiz() {
+    async function submitQuiz() {
         clearInterval(overallTimer);
         
-        // Show submission modal
-        dom.submissionModal.classList.remove('hidden');
-        
-        // Start countdown for redirect
-        redirectTimer = setInterval(() => {
-            countdown--;
-            dom.countdown.textContent = countdown;
+        try {
+            // Prepare responses for submission
+            const responses = quizData.questions.map((question, index) => ({
+                slide_id: question.slide_id,
+                answer: userAnswers[index] !== null ? userAnswers[index].toString() : ''
+            })).filter(response => response.answer !== '');
             
-            if (countdown <= 0) {
-                clearInterval(redirectTimer);
-                // In a real app, this would redirect to the leaderboard page
-                alert("Quiz submitted successfully!");
+            // Submit to server
+            const response = await fetch(`/api.php?session_code=${sessionCode}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ responses })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to submit quiz');
             }
-        }, 1000);
+            
+            const result = await response.json();
+            
+            // Show submission modal with score
+            dom.modalScore.textContent = result.score;
+            dom.submissionModal.classList.remove('hidden');
+            
+            // Start countdown for redirect
+            redirectTimer = setInterval(() => {
+                countdown--;
+                dom.countdown.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(redirectTimer);
+                    // Redirect to leaderboard
+                    window.location.href = `/leaderboard.php?session_code=${sessionCode}`;
+                }
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error submitting quiz:', error);
+            alert('Failed to submit quiz. Please try again.');
+        }
     }
 
     // UI Updates
