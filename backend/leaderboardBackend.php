@@ -3,70 +3,88 @@
 require_once '../backend/db.php';
 session_start();
 
-function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
-    // Get ALL participants for this session
+function getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $host_id, $is_host) {
+    // Get participants (exclude host if they're viewing)
+    $excludeHost = $is_host ? "AND qp.user_id != ?" : "";
+    $paramTypes = $is_host ? "ii" : "i";
+    $params = $is_host ? [$session_id, $host_id] : [$session_id];
+
     $stmt = $conn->prepare("
         SELECT qp.user_id, u.name, qp.score, qp.joined_at,
                RANK() OVER (ORDER BY qp.score DESC) as rank
         FROM quiz_participants qp
         JOIN user_info u ON qp.user_id = u.user_id
-        WHERE qp.session_id = ?
+        WHERE qp.session_id = ? $excludeHost
         ORDER BY qp.score DESC
+        LIMIT 10
     ");
-    $stmt->bind_param("i", $session_id);
+    $stmt->bind_param($paramTypes, ...$params);
     $stmt->execute();
     $allParticipants = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
     // Get total questions count
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as count 
-        FROM quiz_slides qs
-        JOIN quiz_sessions qses ON qs.quiz_id = qses.quiz_id
-        WHERE qses.id = ?
-    ");
-    $stmt->bind_param("i", $session_id);
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM quiz_slides WHERE quiz_id = ?");
+    $stmt->bind_param("i", $quiz_id);
     $stmt->execute();
     $totalQuestions = $stmt->get_result()->fetch_assoc()['count'];
 
-    // Find current user
+    // Get current user data (even if host)
     $currentUser = null;
-    foreach ($allParticipants as $participant) {
-        if ($participant['user_id'] == $user_id) {
-            $currentUser = $participant;
-            break;
+    if ($is_host) {
+        $stmt = $conn->prepare("SELECT name FROM user_info WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        
+        $currentUser = [
+            'user_id' => $user_id,
+            'name' => $user['name'],
+            'score' => 0,
+            'rank' => null,
+            'joined_at' => null
+        ];
+    } else {
+        foreach ($allParticipants as $participant) {
+            if ($participant['user_id'] == $user_id) {
+                $currentUser = $participant;
+                break;
+            }
+        }
+        if (!$currentUser) {
+            return ['error' => 'Participant not found'];
         }
     }
 
-    if (!$currentUser) {
-        return ['error' => 'Participant not found'];
+    // Get question results with correct answers
+    $questionResults = [];
+    if (!$is_host) { // Only get detailed results for actual participants
+        $stmt = $conn->prepare("
+            SELECT 
+                qs.question, 
+                qr.answer,
+                qr.is_correct, 
+                qr.submitted_at
+            FROM quiz_responses qr
+            JOIN quiz_slides qs ON qr.slide_id = qs.slide_id
+            WHERE qr.user_id = ? AND qr.quiz_id = ?
+            ORDER BY qs.position
+        ");
+        $stmt->bind_param("ii", $user_id, $quiz_id);
+        $stmt->execute();
+        $questionResults = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Get question results for current user
-    $stmt = $conn->prepare("
-        SELECT qs.question, qr.is_correct, qr.submitted_at
-        FROM quiz_responses qr
-        JOIN quiz_slides qs ON qr.slide_id = qs.slide_id
-        JOIN quiz_sessions qses ON qr.quiz_id = qses.quiz_id
-        WHERE qr.user_id = ? AND qses.id = ?
-        ORDER BY qs.position
-    ");
-    $stmt->bind_param("ii", $user_id, $session_id);
-    $stmt->execute();
-    $questionResults = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-    // Calculate time taken (simplified)
+    // Calculate time taken
     $timeTaken = 'N/A';
-    if ($currentUser['joined_at']) {
+    if (!empty($currentUser['joined_at']) && !empty($questionResults)) {
         $joined = new DateTime($currentUser['joined_at']);
-        $lastResponse = $questionResults ? end($questionResults)['submitted_at'] : null;
-        if ($lastResponse) {
-            $last = new DateTime($lastResponse);
-            $interval = $joined->diff($last);
-            $timeTaken = $interval->format('%i:%s');
-        }
+        $lastResponse = end($questionResults)['submitted_at'];
+        $last = new DateTime($lastResponse);
+        $interval = $joined->diff($last);
+        $timeTaken = $interval->format('%i:%s');
     }
 
-    // Prepare base data structure
+    // Prepare base data
     $data = [
         'quizTitle' => 'Quiz Results',
         'user' => [
@@ -80,6 +98,7 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
                 return [
                     'question' => $q['question'],
                     'correct' => (bool)$q['is_correct'],
+                    'answer' => $q['answer'],
                     'timeSpent' => 'N/A'
                 ];
             }, $questionResults)
@@ -87,7 +106,7 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
         'participants' => []
     ];
 
-    // Prepare participant data
+    // Prepare participant data (with question details for host view)
     foreach ($allParticipants as $participant) {
         $participantData = [
             'id' => $participant['user_id'],
@@ -98,36 +117,29 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
             'rank' => $participant['rank']
         ];
 
-        // If host is viewing, include question results for all participants
-        $is_host = false;
-        if ($session_id && $user_id) {
-            $stmt = $conn->prepare("SELECT host_id FROM quiz_sessions WHERE id = ?");
-            $stmt->bind_param("i", $session_id);
-            $stmt->execute();
-            $session = $stmt->get_result()->fetch_assoc();
-            $is_host = ($session && $session['host_id'] == $user_id);
-        }
-
         if ($is_host) {
             $stmt = $conn->prepare("
-                SELECT qs.question, qr.is_correct, qr.submitted_at
+                SELECT 
+                    qs.question, 
+                    qr.answer,
+                    qr.is_correct
                 FROM quiz_responses qr
                 JOIN quiz_slides qs ON qr.slide_id = qs.slide_id
-                JOIN quiz_sessions qses ON qr.quiz_id = qses.quiz_id
-                WHERE qr.user_id = ? AND qses.id = ?
+                WHERE qr.user_id = ? AND qr.quiz_id = ?
                 ORDER BY qs.position
             ");
-            $stmt->bind_param("ii", $participant['user_id'], $session_id);
+            $stmt->bind_param("ii", $participant['user_id'], $quiz_id);
             $stmt->execute();
-            $participantQuestions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
             $participantData['questionResults'] = array_map(function($q) {
                 return [
                     'question' => $q['question'],
                     'correct' => (bool)$q['is_correct'],
+                    'answer' => $q['answer'],
                     'timeSpent' => 'N/A'
                 ];
-            }, $participantQuestions);
+            }, $questions);
         }
 
         $data['participants'][] = $participantData;
@@ -153,8 +165,10 @@ if (isset($_GET['ajax'])) {
         exit;
     }
 
+    $is_host=($user_id==$hostId);
+
     try {
-        $data = getLeaderboardData($conn, $session_id, $quiz_id, $user_id);
+        $data = getLeaderboardData($conn, $session_id, $quiz_id, $user_id,$hostId,$is_host);
         echo json_encode($data);
     } catch (Exception $e) {
         http_response_code(500);
