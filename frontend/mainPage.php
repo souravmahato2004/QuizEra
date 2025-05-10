@@ -227,7 +227,7 @@
                 <i class="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-[#797979]"></i>
             </div>
         </div>
-        <a href="../frontend/leaderboard.php?session_id=17&quiz_id=28&user_id=<?php echo($_SESSION['id'])?>">leaderboard</a>
+        <a href="../frontend/leaderboard.php?session_id=22&quiz_id=28&user_id=<?php echo($_SESSION['id'])?>">leaderboard</a>
         <div class="mb-4 flex space-x-4 pl-5">
             <button onclick="openModal()"
                 class="bg-red-500 text-white px-7 py-2 rounded-3xl hover:bg-red-600 tranisition duration-500">Build New
