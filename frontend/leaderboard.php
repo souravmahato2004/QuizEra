@@ -111,11 +111,6 @@ $leaderboardData = getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $h
                                             <?= htmlspecialchars($q['correct_answer'] ?? 'No answer') ?>
                                         </span>
                                     </div>
-                                    <!-- <?php if (!$q['correct']): ?>
-                                        <div class="text-sm">Correct answer: 
-                                            <span class="text-green-700"><?= htmlspecialchars($q['correct_answer']) ?></span>
-                                        </div>
-                                        <?php endif; ?> -->
                                     </div>
                                     <?php endforeach; ?>
                                 </div>
