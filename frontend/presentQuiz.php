@@ -128,13 +128,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
     $stmt = $conn->prepare($update_query);
     $stmt->bind_param("iii", $score, $session['id'], $user_id);
     $stmt->execute();
+    $session_id=$session['id'];
 
     // Show success modal
     echo "<script>
             document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('successModal').classList.remove('hidden');
                 setTimeout(function() {
-                    window.location.href = 'leaderboard.php?session_code=$session_code';
+                    window.location.href = 'leaderboard.php?session_id=$session_id&quiz_id=$quiz_id&user_id=$user_id';
                 }, 3000);
             });
           </script>";

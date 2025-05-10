@@ -3,7 +3,10 @@
 require_once '../backend/db.php';
 session_start();
 
-function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
+function getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $host_id) {
+    // First verify if the user is the host
+    $is_host = ($user_id == $host_id);
+
     // Get ALL participants for this session
     $stmt = $conn->prepare("
         SELECT qp.user_id, u.name, qp.score, qp.joined_at,
@@ -12,6 +15,7 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
         JOIN user_info u ON qp.user_id = u.user_id
         WHERE qp.session_id = ?
         ORDER BY qp.score DESC
+        LIMIT 10
     ");
     $stmt->bind_param("i", $session_id);
     $stmt->execute();
@@ -28,7 +32,7 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
     $stmt->execute();
     $totalQuestions = $stmt->get_result()->fetch_assoc()['count'];
 
-    // Find current user
+    // Find current user (either in participants or as host)
     $currentUser = null;
     foreach ($allParticipants as $participant) {
         if ($participant['user_id'] == $user_id) {
@@ -37,33 +41,49 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
         }
     }
 
-    if (!$currentUser) {
+    // If user not found in participants but is host, create minimal user data
+    if (!$currentUser && $is_host) {
+        $stmt = $conn->prepare("SELECT name FROM user_info WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $user_name = $stmt->get_result()->fetch_assoc()['name'];
+        
+        $currentUser = [
+            'user_id' => $user_id,
+            'name' => $user_name,
+            'score' => 0,
+            'rank' => null,
+            'joined_at' => null
+        ];
+    }
+    elseif (!$currentUser) {
         return ['error' => 'Participant not found'];
     }
 
-    // Get question results for current user
-    $stmt = $conn->prepare("
-        SELECT qs.question, qr.is_correct, qr.submitted_at
-        FROM quiz_responses qr
-        JOIN quiz_slides qs ON qr.slide_id = qs.slide_id
-        JOIN quiz_sessions qses ON qr.quiz_id = qses.quiz_id
-        WHERE qr.user_id = ? AND qses.id = ?
-        ORDER BY qs.position
-    ");
-    $stmt->bind_param("ii", $user_id, $session_id);
-    $stmt->execute();
-    $questionResults = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    // Get question results for current user (if they participated)
+    $questionResults = [];
+    if (in_array($currentUser['user_id'], array_column($allParticipants, 'user_id'))) {
+        $stmt = $conn->prepare("
+            SELECT qs.question, qr.is_correct, qr.submitted_at
+            FROM quiz_responses qr
+            JOIN quiz_slides qs ON qr.slide_id = qs.slide_id
+            JOIN quiz_sessions qses ON qr.quiz_id = qses.quiz_id
+            WHERE qr.user_id = ? AND qses.id = ?
+            ORDER BY qs.position
+        ");
+        $stmt->bind_param("ii", $user_id, $session_id);
+        $stmt->execute();
+        $questionResults = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
 
     // Calculate time taken (simplified)
     $timeTaken = 'N/A';
-    if ($currentUser['joined_at']) {
+    if (!empty($currentUser['joined_at']) && !empty($questionResults)) {
         $joined = new DateTime($currentUser['joined_at']);
-        $lastResponse = $questionResults ? end($questionResults)['submitted_at'] : null;
-        if ($lastResponse) {
-            $last = new DateTime($lastResponse);
-            $interval = $joined->diff($last);
-            $timeTaken = $interval->format('%i:%s');
-        }
+        $lastResponse = end($questionResults)['submitted_at'];
+        $last = new DateTime($lastResponse);
+        $interval = $joined->diff($last);
+        $timeTaken = $interval->format('%i:%s');
     }
 
     // Prepare base data structure
@@ -98,16 +118,7 @@ function getLeaderboardData($conn, $session_id, $quiz_id, $user_id) {
             'rank' => $participant['rank']
         ];
 
-        // If host is viewing, include question results for all participants
-        $is_host = false;
-        if ($session_id && $user_id) {
-            $stmt = $conn->prepare("SELECT host_id FROM quiz_sessions WHERE id = ?");
-            $stmt->bind_param("i", $session_id);
-            $stmt->execute();
-            $session = $stmt->get_result()->fetch_assoc();
-            $is_host = ($session && $session['host_id'] == $user_id);
-        }
-
+        // Only include detailed question results if host is viewing
         if ($is_host) {
             $stmt = $conn->prepare("
                 SELECT qs.question, qr.is_correct, qr.submitted_at
@@ -154,7 +165,7 @@ if (isset($_GET['ajax'])) {
     }
 
     try {
-        $data = getLeaderboardData($conn, $session_id, $quiz_id, $user_id);
+        $data = getLeaderboardData($conn, $session_id, $quiz_id, $user_id,$hostId);
         echo json_encode($data);
     } catch (Exception $e) {
         http_response_code(500);

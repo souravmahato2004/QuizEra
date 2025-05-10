@@ -80,8 +80,8 @@
         </div>
 
         <div class="flex gap-4">
-            <a href="#" class="underline text-lg">Create</a>
-            <a href="#" class="text-lg">Results</a>
+            <a href="../frontend/quiz.php?quiz=<?php echo($_GET['quiz']);?>" class="underline text-lg">Create</a>
+            <a href="../frontend/leaderboard.php?session_id=<?php echo($_GET['quiz']);?>&quiz_id=<?php echo($_GET['quiz']);?>&user_id=<?php echo($_SESSION['id']);?>" class="text-lg">Results</a>
         </div>
 
         <div class="flex items-center gap-3">
