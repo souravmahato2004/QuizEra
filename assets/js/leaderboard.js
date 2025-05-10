@@ -211,7 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.showParticipantDetails = function(participantId) {
         if (!isHost) return;
         
-        fetch(`../includes/get_participant_details.php?user_id=${participantId}&session_id=${sessionId}`)
+        fetch(`../backend/leaderboardBackend.php?user_id=${participantId}&session_id=${sessionId}`)
             .then(response => response.json())
             .then(participant => {
                 if (!participant) return;
