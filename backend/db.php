@@ -14,26 +14,26 @@ if ($conn->connect_error) {
 }
 
 // Set charset
-$conn->set_charset("utf8mb4");
+// $conn->set_charset("utf8mb4");
 
 // Helper function for prepared statements
-function executeQuery($conn, $sql, $params = [], $types = "") {
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        throw new Exception("Prepare failed: " . $conn->error);
-    }
+// function executeQuery($conn, $sql, $params = [], $types = "") {
+//     $stmt = $conn->prepare($sql);
+//     if (!$stmt) {
+//         throw new Exception("Prepare failed: " . $conn->error);
+//     }
     
-    if (!empty($params)) {
-        if (empty($types)) {
-            $types = str_repeat("s", count($params));
-        }
-        $stmt->bind_param($types, ...$params);
-    }
+//     if (!empty($params)) {
+//         if (empty($types)) {
+//             $types = str_repeat("s", count($params));
+//         }
+//         $stmt->bind_param($types, ...$params);
+//     }
     
-    if (!$stmt->execute()) {
-        throw new Exception("Execute failed: " . $stmt->error);
-    }
+//     if (!$stmt->execute()) {
+//         throw new Exception("Execute failed: " . $stmt->error);
+//     }
     
-    return $stmt;
-}
+//     return $stmt;
+// }
 ?>

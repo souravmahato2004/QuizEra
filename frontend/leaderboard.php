@@ -76,12 +76,12 @@ $leaderboardData = getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $h
                 <?php if (isset($leaderboardData['user'])): ?>
                     <div class="flex flex-col items-center mb-6">
                         <div class="w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-4xl mb-4">
-                            <?= substr($leaderboardData['user']['name'], 0, 1) ?>
+                            <?= substr($leaderboardData['user']['username'], 0, 1) ?>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($leaderboardData['user']['name']) ?></h3>
+                        <h3 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($leaderboardData['user']['username']) ?></h3>
                         <p class="text-gray-500"><?= $is_host ? 'Host' : 'Rank: '.($leaderboardData['user']['rank'] ?? 'N/A') ?></p>
                     </div>
-                    
+                    <?php if(!$is_host): ?>
                     <div class="space-y-4 mb-6">
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600">Score</span>
@@ -108,19 +108,19 @@ $leaderboardData = getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $h
                                     <div class="font-medium mb-2">Q<?= $i+1 ?>: <?= htmlspecialchars($q['question']) ?></div>
                                     <div class="text-sm mb-1">Your answer: 
                                         <span class="<?= $q['correct'] ? 'text-green-700' : 'text-red-700' ?>">
-                                            <?= htmlspecialchars($q['user_answer'] ?? 'No answer') ?>
+                                            <?= htmlspecialchars($q['correct_answer'] ?? 'No answer') ?>
                                         </span>
                                     </div>
-                                    <?php if (!$q['correct']): ?>
+                                    <!-- <?php if (!$q['correct']): ?>
                                         <div class="text-sm">Correct answer: 
                                             <span class="text-green-700"><?= htmlspecialchars($q['correct_answer']) ?></span>
                                         </div>
-                                    <?php endif; ?>
-                                    <div class="text-xs text-gray-500 mt-1">Time spent: <?= $q['timeSpent'] ?? 'N/A' ?></div>
+                                        <?php endif; ?> -->
+                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
+                            </div>
+                        <?php endif; ?>
                 <?php else: ?>
                     <p class="text-red-500">No user data available</p>
                 <?php endif; ?>
@@ -156,9 +156,9 @@ $leaderboardData = getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $h
                                     <?= $participant['rank'] ?>
                                 </div>
                                 <div class="w-16 h-16 rounded-full flex items-center justify-center font-bold mb-2 text-2xl <?= $textColor ?>">
-                                    <?= substr($participant['name'], 0, 1) ?>
+                                    <?= substr($participant['username'], 0, 1) ?>
                                 </div>
-                                <h3 class="font-medium text-center"><?= htmlspecialchars($participant['name']) ?></h3>
+                                <h3 class="font-medium text-center"><?= htmlspecialchars($participant['username']) ?></h3>
                                 <p class="text-sm text-gray-500"><?= $participant['score'] ?>/<?= $participant['totalQuestions'] ?></p>
                                 <p class="text-xs text-gray-400 mt-1"><?= $participant['timeTaken'] ?? 'N/A' ?></p>
                             </div>
