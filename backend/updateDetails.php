@@ -1,4 +1,28 @@
 <?php
+include '../backend/db.php';
+
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+$profilePic = null;
+
+if (isset($_SESSION['username'])) {
+    $stmt = $conn->prepare("SELECT user_pic FROM user_info WHERE username = ?");
+    $stmt->bind_param("s", $_SESSION['username']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $profilePic = $row['user_pic'];
+    }
+
+    $stmt->close();
+}
+
+$conn->close();
+
     if($_SERVER['REQUEST_METHOD']=='POST'){
         if(isset($_POST['username']) && $_POST['form_name']=='nameSection'){
             if(session_status()==PHP_SESSION_NONE){
@@ -16,22 +40,30 @@
             }
             $Name = $_POST['Name'] ?? null;
             $username = $_POST['username'] ?? null;
-            $imageData=null;
+            $quizImagePath = null;
+            $newFileName=null;
             if (isset($_FILES['user_pic']) && $_FILES['user_pic']['error'] === UPLOAD_ERR_OK) {
-                $imageTmpPath = $_FILES['user_pic']['tmp_name'];
-                $imageData = file_get_contents($imageTmpPath);
+                $targetDir = "../assets/profilepic/";
+                $fileExt = pathinfo($_FILES['user_pic']['name'], PATHINFO_EXTENSION);
+                $newFileName = uniqid() . '.' . $fileExt;
+                $targetFile = $targetDir . $newFileName;
+
+                // Validate and move uploaded file
+                if (move_uploaded_file($_FILES['user_pic']['tmp_name'], $targetFile)) {
+                    $quizImagePath = $targetFile;
+                }
             }
             $_SESSION['name']=$Name;
             $_SESSION['username']=$username;
-            $_SESSION['profilepic']=$imageData;
+            $_SESSION['profilepic']=$newFileName;
 
-            if ($imageData !== null) {
-                $stmt = $conn->prepare("UPDATE user_info SET name=?, username=?, user_pic=? WHERE id=?");
-                $stmt->bind_param("ssbs", $Name, $username, $imageData, $id);
-                $stmt->send_long_data(2, $imageData);
+            if ($quizImagePath !== null) {
+                $stmt = $conn->prepare("UPDATE user_info SET name=?, username=?, user_pic=? WHERE user_id=?");
+                $stmt->bind_param("sssi", $Name, $username, $newFileName, $id);
+                $stmt->execute();
             } else {
-                $stmt = $conn->prepare("UPDATE user_info SET name=?, username=? WHERE user_id=?");
-                $stmt->bind_param("ssi", $Name, $username, $id);
+                $stmt = $conn->prepare("UPDATE user_info SET name=?, username=?, user_pic=? WHERE user_id=?");
+                $stmt->bind_param("sssi", $Name, $username,$newFileName, $id);
             }
             $stmt->execute();
             $checkstmt->close();

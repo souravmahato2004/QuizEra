@@ -66,14 +66,14 @@ userDropdownBtn.addEventListener("click", () => {
   userDropdown.classList.toggle("hidden");
 });
 
-openModalBtn.addEventListener("click", () => {
-  openModal.classList.remove("hidden");
-  openModal.classList.add("flex");
-});
+// openModalBtn.addEventListener("click", () => {
+//   openModal.classList.remove("hidden");
+//   openModal.classList.add("flex");
+// });
 
-closeModalBtn.addEventListener("click", () => {
-  openModal.classList.add("hidden");
-});
+// closeModalBtn.addEventListener("click", () => {
+//   openModal.classList.add("hidden");
+// });
 
 dropArea.addEventListener("click", () => fileInput.click());
 
