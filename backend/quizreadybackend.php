@@ -114,29 +114,39 @@ function getCurrentQuizSession($quizId, $conn) {
         ");
         $stmt->bind_param('i', $quizId);
         $stmt->execute();
-        
+
         $result = $stmt->get_result()->fetch_assoc();
-        
+
         if ($result) {
             return $result['code'];
         }
-        
-        // Create new session if none exists
+
         $sessionCode = generateSessionCode();
         $userId = $_SESSION['id'];
-        
+
+        // Delete only previous sessions with status 'completed'
+        $stmt = $conn->prepare("
+            DELETE FROM quiz_sessions 
+            WHERE quiz_id = ? AND status = 'completed'
+        ");
+        $stmt->bind_param('i', $quizId);
+        $stmt->execute();
+
+        // Create a new active session
         $stmt = $conn->prepare("
             INSERT INTO quiz_sessions (quiz_id, code, host_id, status, created_at)
             VALUES (?, ?, ?, 'active', NOW())
         ");
         $stmt->bind_param('isi', $quizId, $sessionCode, $userId);
         $stmt->execute();
-        
+
         return $sessionCode;
+
     } catch (Exception $e) {
         return 'ERROR';
     }
 }
+
 
 // Function to generate a random 6-character session code
 function generateSessionCode() {

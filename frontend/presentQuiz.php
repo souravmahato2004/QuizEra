@@ -68,10 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
     $user_id = $_SESSION['id'];
 
     // Delete previous responses
-    // $delete_query = "DELETE FROM quiz_responses WHERE quiz_id = ? AND user_id = ?";
-    // $stmt = $conn->prepare($delete_query);
-    // $stmt->bind_param("ii", $quiz_id, $user_id);
-    // $stmt->execute();
+    $delete_query = "DELETE FROM quiz_responses WHERE quiz_id = ? AND user_id = ?";
+    $stmt = $conn->prepare($delete_query);
+    $stmt->bind_param("ii", $quiz_id, $user_id);
+    $stmt->execute();
 
     foreach ($_POST['answers'] as $slide_id => $answer) {
         // Determine if answer is correct

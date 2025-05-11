@@ -1,3 +1,19 @@
+<?php
+    // fetching the quiz session id if created
+    include '../backend/db.php';
+    $stmt = $conn->prepare("SELECT id FROM quiz_sessions WHERE quiz_id = ?");
+    $stmt->bind_param('s', $_GET['quiz']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result && $result->num_rows > 0) {
+        $sessionId = $result->fetch_assoc()['id'];
+    } else {
+        // Handle case when no session is found
+        $sessionId = null;
+    }
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <?php include '../backend/quizBackend.php';?>
@@ -81,7 +97,7 @@
 
         <div class="flex gap-4">
             <a href="../frontend/quiz.php?quiz=<?php echo($_GET['quiz']);?>" class="underline text-lg">Create</a>
-            <a href="../frontend/leaderboard.php?session_id=<?php echo($_GET['quiz']);?>&quiz_id=<?php echo($_GET['quiz']);?>&user_id=<?php echo($_SESSION['id']);?>" class="text-lg">Results</a>
+            <a href="../frontend/leaderboard.php?session_id=<?php echo($sessionId);?>&quiz_id=<?php echo($_GET['quiz']);?>&user_id=<?php echo($_SESSION['id']);?>" class="text-lg">Results</a>
         </div>
 
         <div class="flex items-center gap-3">

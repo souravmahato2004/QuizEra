@@ -52,10 +52,9 @@ $leaderboardData = getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $h
 <body class="bg-gray-50 min-h-screen <?= $is_host ? 'host-view' : '' ?>">
     <header class="bg-white shadow-sm">
         <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-            <button id="backButton" class="flex items-center text-purple-600 hover:text-purple-800 transition-colors">
+            <a href="mainPage.php" class="flex items-center text-purple-600 hover:text-purple-800 transition-colors">
                 <i class="fas fa-arrow-left mr-2"></i>
-                <span>Back to Home</span>
-            </button>
+                <span>Back to Home</span></a>
             <h1 class="text-xl font-bold text-gray-800">Quiz Results</h1>
             <?php if ($is_host): ?>
             <div id="hostControls">
@@ -242,7 +241,7 @@ $leaderboardData = getLeaderboardData($conn, $session_id, $quiz_id, $user_id, $h
             modal.classList.remove('hidden');
             
             try {
-                const response = await fetch(`../backend/leaderboardBackend.php?ajax=1&user_id=${participantId}&session_id=${sessionId}&host_view=1`);
+                const response = await fetch(`../backend/leaderboardBackend.php?session_id=${sessionId}&quiz_id=${quizId}&user_id=${participantId}&ajax=1`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 
                 const data = await response.json();
